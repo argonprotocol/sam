@@ -25,7 +25,7 @@ export default class DollarInflation {
     const previousMonth = months[previousMonthIndex];
 
     if (!cpiMap[year] || !cpiMap[year][month]) {
-      return this.rules.inflation / 12;
+      return this.rules.dollarInflation / 12;
     }
 
     const currentCpi = cpiMap[year][month];

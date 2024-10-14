@@ -1,7 +1,8 @@
 import path from 'path';
+import dayjs, { type Dayjs } from "dayjs";
 import loadCsvFile from './loadCsvFile';
 import BitcoinPriceRecord from '../interfaces/BitcoinPriceRecord';
-import { formatDateAsYYYYMMDD } from './utils';
+import { formatDateAsYYYYMMDD } from './Utils';
 
 const allBitcoinPrices = loadCsvFile(path.join(__dirname, '../data-input/bitcoin_prices.csv')).map((x: any) => {
   x.price = Number(x.price);
@@ -12,9 +13,9 @@ export default class BtcPrices {
   static getYear(yearToRun: string): BitcoinPriceRecord[] {
     return [...allBitcoinPrices.filter((row: BitcoinPriceRecord) => row.date.startsWith(yearToRun))];
   }
-  static get(date: string | Date): BitcoinPriceRecord {
-    if (date instanceof Date) {
-      date = formatDateAsYYYYMMDD(date);
+  static get(date: string | Dayjs): BitcoinPriceRecord {
+    if (date instanceof dayjs) {
+      date = date.format('YYYY-MM-DD');
     }
     return allBitcoinPrices.find((row: BitcoinPriceRecord) => row.date === date);
   }

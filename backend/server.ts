@@ -2,6 +2,7 @@ import runStart from './endpoints/runStart';
 import runCollapse from './endpoints/runCollapse';
 import runRecovery from './endpoints/runRecovery';
 import runDollar from './endpoints/runDollar';
+import run from './endpoints/run';
 
 const CORS_HEADERS = {
   headers: {
@@ -22,6 +23,11 @@ const server = Bun.serve({
 
     if (path === '/') {
       return Response.json({ hello: 'world' }, CORS_HEADERS);
+    }
+
+    if (path === '/run') {
+      const data = await run(req);
+      return Response.json(data, CORS_HEADERS);
     }
 
     if (path === '/run/start') {

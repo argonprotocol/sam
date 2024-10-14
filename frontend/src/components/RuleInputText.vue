@@ -17,8 +17,12 @@
 
 <script setup lang="ts">
 import * as Vue from 'vue';
-import { directive as vAutowidth } from 'vue-input-autowidth';
 import { vMaska } from "maska/vue";
+import { directive as vAutowidth } from 'vue-input-autowidth';
+import dayjs, { type Dayjs } from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
 
 const props = defineProps({
   modelValue: {
@@ -96,7 +100,7 @@ function emitInput(event: any) {
   if (props.isNumber || props.isDollars || props.useThousandsSeparator) {
     value = ensureMinMax(cleanNumber(value));
   } else if (props.isDate) {
-    value = formatDateToString(ensureMinMax(extractDateFromString(value)) as Date);
+    value = (ensureMinMax(dayjs.utc(value)) as Dayjs).format('YYYY/MM/DD');
   }
 
   emit('update:modelValue', value);
@@ -115,9 +119,9 @@ function startDrag(event: any) {
         valuePerStep: dragStartX / originalValue,
       }
     } else if (props.isDate) {
-      const originalDate = extractDateFromString(localModel.value as string);
-      const minDate = props.min ? extractDateFromString(props.min as string) : new Date(2010, 1, 1);
-      const daysDifference = Math.floor((originalDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+      const originalDate = dayjs.utc(localModel.value);
+      const minDate = dayjs.utc(props.min ? props.min : '2010/01/01');
+      const daysDifference = originalDate.diff(minDate, 'days');
       dragMeta = {
         originalDate,
         daysDifference,
@@ -151,9 +155,9 @@ function drag(event: any) {
     const decreaseFactor = Math.sign(delta) * Math.floor(Math.abs(delta) / dragMeta.valuePerStep);
     newValue = Math.max(0, newValue + decreaseFactor);
   } else if (props.isDate) {
-    let newDate = extractDateFromString(localModel.value as string);
-    newDate.setDate(newDate.getDate() + Math.sign(delta) * Math.floor(Math.abs(delta) / dragMeta.valuePerStep));
-    newValue = formatDateToString(ensureMinMax(newDate) as Date);
+    const daysToAdd = Math.sign(delta) * Math.floor(Math.abs(delta) / dragMeta.valuePerStep);
+    const newDate = ensureMinMax(dayjs.utc(localModel.value).add(daysToAdd, 'day')) as Dayjs;
+    newValue = newDate.format('YYYY/MM/DD');
   } else {
     // For other inputs, don't change the value
     return;
@@ -163,7 +167,7 @@ function drag(event: any) {
   emit('update:modelValue', newValue);
 }
 
-function ensureMinMax(value: number | Date) {
+function ensureMinMax(value: number | Dayjs) {
   if (typeof value === 'number' && props.isNumber || props.isDollars || props.useThousandsSeparator) {
     const max = props.max ? Number(props.max) : Infinity;
     const min = props.min ? Number(props.min) : 0;
@@ -173,29 +177,21 @@ function ensureMinMax(value: number | Date) {
     if (value as number > max) {
       return max;
     }
-  } else if (value instanceof Date) {
-    const max = props.max ? extractDateFromString(props.max as string) : new Date();
-    const min = props.min ? extractDateFromString(props.min as string) : new Date(2010, 1, 1);
-    if (value.getTime() < min.getTime()) {
+  } else if (value instanceof dayjs) {
+    const max = dayjs.utc(props.max);
+    const min = dayjs.utc(props.min);
+    if (value.isBefore(min)) {
       return min;
     }
-    if (value.getTime() > max.getTime()) {
+    if (value.isAfter(max)) {
       return max;
     }
   }
   return value;
 }
 
-function formatDateToString(date: Date): string {
-  return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-}
-
-function extractDateFromString(dateString: string): Date {
-  if (!dateString) {
-    return new Date();
-  }
-  const [year, month, day] = dateString.split('/').map(Number);
-  return new Date(year, month - 1, day);
+function extractDateFromString(dateString: string): Dayjs {
+  return dateString ? dayjs.utc(dateString) : dayjs.utc();
 }
 
 function handleKeyDown(event: any) {
@@ -209,14 +205,12 @@ function handleKeyDown(event: any) {
     }
   } else if (props.isDate) {
     if (event.key === 'ArrowUp') {
-      const date = extractDateFromString(localModel.value as string || '');
-      date.setDate(date.getDate() + 1);
-      localModel.value = formatDateToString(ensureMinMax(date) as Date);
+      const date = ensureMinMax(dayjs.utc(localModel.value).add(1, 'day')) as Dayjs;
+      localModel.value = date.format('YYYY/MM/DD')
       emit('update:modelValue', localModel.value);
     } else if (event.key === 'ArrowDown') {
-      const date = extractDateFromString(localModel.value as string || '');
-      date.setDate(date.getDate() - 1);
-      localModel.value = formatDateToString(ensureMinMax(date) as Date);
+      const date = ensureMinMax(dayjs.utc(localModel.value).subtract(1, 'day')) as Dayjs;
+      localModel.value = date.format('YYYY/MM/DD')
       emit('update:modelValue', localModel.value);
     }
   }

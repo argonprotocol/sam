@@ -1,89 +1,83 @@
+import dayjs, { type Dayjs } from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import IRules from "../interfaces/IRules";
 import BlockchainRunner, { MILLIS_PER_HOUR } from "../lib/BlockchainRunner";
 import DollarInflation from "../lib/DollarInflation";
 
+dayjs.extend(utc);
+dayjs.extend(isSameOrBefore);
 const TERRA_LAUNCH_DATE = '2020-10-01T00:00:00Z';
 const TERRA_POOL_DEPEG_DATE = '2022-05-09T00:00:00Z';
 
 export default class StartController {
-  public async start(asset: 'argon' | 'terra', rules: IRules) {    
-    const runner = new BlockchainRunner(asset, rules);
-    const startingDate = new Date(TERRA_LAUNCH_DATE);
-    const endingDate = new Date(TERRA_POOL_DEPEG_DATE);
+  
+  public async start(rules: IRules) {    
+    const runner = new BlockchainRunner(rules);
+    const startingDate = dayjs.utc(TERRA_LAUNCH_DATE);
+    const endingDate = dayjs.utc(TERRA_POOL_DEPEG_DATE);
     const price = 1.00;
     
     runner.runStart(startingDate, endingDate, price);
 
-    return {
-      chartMarkers: runner.dailyMarkers.map(m => [m.startingDate, m.currentPrice]),
-      stats: runner.stats,
-    };
+    return runner.dailyMarkers.map(m => m.toJson())
   }
 
-  public async collapse(asset: 'argon' | 'terra', rules: IRules, lastDate: string, lastPrice: number) {
-    const runner = new BlockchainRunner(asset, rules);
-    const startingDate = new Date(new Date(lastDate).getTime() + 24 * 60 * 60 * 1000);
+  public async collapse(rules: IRules, lastDateStr: string, lastPrice: number) {
+    const runner = new BlockchainRunner(rules);
+    const startingDate = dayjs.utc(lastDateStr).add(1, 'day').startOf('day');
 
-    startingDate.setUTCHours(0, 0, 0, 0);    
-    runner.runCollapse(startingDate, lastPrice);
+    if (rules.enableReservePurchasingPower) {
+      runner.runTerraCollapse(startingDate, lastPrice);
+    } else {
+      runner.runTerralikeCollapse(startingDate, lastPrice);
+    }
  
-    return {
-      chartMarkers: runner.dailyMarkers.map(m => [m.startingDate, m.currentPrice]),
-      stats: runner.stats,
-    };
+    return runner.dailyMarkers.map(m => m.toJson());
   }
 
-  public async recovery(asset: 'argon' | 'terra', rules: IRules, lastDate: string, lastPrice: number) {
-    const runner = new BlockchainRunner(asset, rules);
-    const startingDate = new Date(new Date(lastDate).getTime() + 24 * 60 * 60 * 1000);
+  public async recovery(rules: IRules, lastDateStr: string, lastPrice: number) {
+    const runner = new BlockchainRunner(rules);
+    const startingDate = dayjs.utc(lastDateStr).add(1, 'day').startOf('day');
     
-    startingDate.setUTCHours(0, 0, 0, 0);    
     runner.runRecovery(startingDate, lastPrice);
     
-    return {
-      chartMarkers: runner.dailyMarkers.map(m => [m.startingDate, m.currentPrice]),
-      stats: runner.stats,
-    };
+    return runner.dailyMarkers.map(m => m.toJson());
   }
 
-  public async dollar(endingDate: Date, rules: IRules) {
-    const startingDate = new Date(TERRA_LAUNCH_DATE);
+  public async dollar(endingDateString: string, rules: IRules) {
+    const endingDate = dayjs.utc(endingDateString);
     const dollarMarkers: any[] = [];
     const dollarInflation = new DollarInflation(rules);
 
-    let currentDate = new Date(startingDate);
+    let currentDate = dayjs.utc(TERRA_LAUNCH_DATE);
     let currentPrice = 1.0;
     
-    while (currentDate <= endingDate) {
-      const year = currentDate.getFullYear().toString();
-      const month = currentDate.toLocaleString('default', { month: 'long' });
-      
+    while (currentDate.isSameOrBefore(endingDate)) {
+      const year = currentDate.year().toString();
+      const month = currentDate.format('MMMM');
       const monthlyInflation = dollarInflation.get(year, month);
 
-      const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+      const daysInMonth = currentDate.daysInMonth();
       const dailyInflation = monthlyInflation / daysInMonth;
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const dailyDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-        if (dailyDate > endingDate) break;
+        const dailyDate = currentDate.date(day);
+        if (dailyDate.isAfter(endingDate)) break;
 
         currentPrice = currentPrice - (currentPrice * (dailyInflation / 100));
         
         dollarMarkers.push({
-          date: dailyDate.toISOString().split('T')[0],
-          inflation: dailyInflation,
-          price: currentPrice,
+          startingDate: dailyDate.toISOString().split('T')[0],
+          endingPrice: currentPrice,
+          dailyInflation: dailyInflation,
         });
-
-        console.log(dailyDate.toISOString().split('T')[0], currentPrice);
       }
 
       // Move to the next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
+      currentDate = currentDate.add(1, 'month');
     }
 
-    return {
-      dollarMarkers,
-    };
+    return dollarMarkers;
   }
 }

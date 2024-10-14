@@ -26,10 +26,10 @@
 
         <RuleItem type="start" isBoth>
           <template #title>Base Inflation</template>
-          <template #value>{{data[asset].inflation}}%</template>
+          <template #value>{{data[asset].dollarInflation}}%</template>
           <template #editing>
             The dollar's ongoing inflation is expected to be 
-            <RuleInputText v-model="data[asset].inflation" :min="0" :max="100" isNumber />
+            <RuleInputText v-model="data[asset].dollarInflation" :min="0" :max="100" isNumber />
             % annually.
           </template>
           <template #help>
@@ -39,10 +39,10 @@
 
         <RuleItem type="start" isArgon>
           <template #title>Taxable Events</template>
-          <template #value>{{ formatShorthandNumber(data[asset].taxableEvents) }} transactions</template>
+          <template #value>{{ formatShorthandNumber(data[asset].transactionsAnnually) }} transactions</template>
           <template #editing>
             The network will settle
-            <RuleInputText v-model="data[asset].taxableEvents" :min="0" :max="212_600_000_000" useThousandsSeparator />
+            <RuleInputText v-model="data[asset].transactionsAnnually" :min="0" :max="212_600_000_000" useThousandsSeparator />
             payment transactions annually.
           </template>
           <template #help>
@@ -52,10 +52,10 @@
 
         <RuleItem type="start" isArgon>
           <template #title>Micropayments</template>
-          <template #value>${{ formatShorthandNumber(data[asset].micropayments) }} annually</template>
+          <template #value>${{ formatShorthandNumber(data[asset].micropaymentsAnnually) }} annually</template>
           <template #editing>
             The stablecoin will process a total revenue volume of
-            <RuleInputText v-model="data[asset].micropayments" :min="0" :max="99_999_999_999" isDollars />
+            <RuleInputText v-model="data[asset].micropaymentsAnnually" :min="0" :max="99_999_999_999" isDollars />
             in micropayments annually (i.e., Ulixee transactions).
           </template>
           <template #help>
@@ -271,8 +271,8 @@
 
       <div :class="asset === 'terra' ? 'pointer-events-none opacity-50' : ''" class="flex flex-row space-x-2 pt-5 pb-5 pl-3 pr-5 items-center font-mono font-thin text-[12.5px]">
         <select :disabled="asset === 'terra'" class="mr-2 inline-block rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 font-mono font-thin text-[12.5px]" :class="{ 'cursor-not-allowed': asset === 'terra' }">
-          <option :selected="data[asset].enableRecoveryDuringFall">Enable</option>
-          <option :selected="!data[asset].enableRecoveryDuringFall">Disable</option>
+          <option :selected="data[asset].disableRecoveryDuringFall">Enable</option>
+          <option :selected="!data[asset].disableRecoveryDuringFall">Disable</option>
         </select>
         Recovery During Fall 
       </div>
@@ -282,50 +282,29 @@
 
 <script setup lang="ts">
 import * as Vue from 'vue';
-import numbro from 'numbro';
 import { storeToRefs } from 'pinia';
+import dayjs, { type Dayjs } from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import ResetIcon from '@/assets/reset-icon.svg';
 import RuleItem from './RuleItem.vue';
 import RuleInputText from './RuleInputText.vue';
 import RuleInputSelect from './RuleInputSelect.vue';
 import { useBasicStore } from '@/stores/basic';
-import { addCommas } from '../lib/BasicUtils';
+import { addCommas, formatShorthandNumber } from '../lib/BasicUtils';
+
+dayjs.extend(utc);
 
 const basicStore = useBasicStore();
 const { asset, rules: data } = storeToRefs(basicStore);
-
-function formatShorthandNumber(value: number | string) {
-  if (value === '--') {
-    return value;
-  }
-  return numbro(value).format({
-    average: true,
-    mantissa: 1,
-    optionalMantissa: true,
-  }).toUpperCase();
-}
-
-function formatDateToString(date: Date): string {
-  return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-}
-
-function extractDateFromString(dateString: string): Date {
-  if (!dateString) {
-    return new Date();
-  }
-  const [year, month, day] = dateString.split('/').map(Number);
-  return new Date(year, month - 1, day);
-}
 
 let isUpdatingBtcDates = false;
 
 Vue.watch(() => data.value[asset.value].btcLockDateStart, (newValue, oldValue) => {
   if (!isUpdatingBtcDates && oldValue && newValue !== oldValue) {
     isUpdatingBtcDates = true;
-    const startDate = extractDateFromString(newValue);
-    const endDate = new Date(startDate.getTime());
-    endDate.setFullYear(endDate.getFullYear() + 1);
-    data.value[asset.value].btcLockDateEnd = formatDateToString(endDate);
+    const startDate = dayjs.utc(newValue);
+    const endDate = startDate.add(1, 'year');
+    data.value[asset.value].btcLockDateEnd = endDate.format('YYYY/MM/DD');
     isUpdatingBtcDates = false;
   }
 }, { immediate: true });
@@ -333,10 +312,9 @@ Vue.watch(() => data.value[asset.value].btcLockDateStart, (newValue, oldValue) =
 Vue.watch(() => data.value[asset.value].btcLockDateEnd, (newValue, oldValue) => {
   if (!isUpdatingBtcDates && oldValue && newValue !== oldValue) {
     isUpdatingBtcDates = true;
-    const endDate = extractDateFromString(newValue);
-    const startDate = new Date(endDate.getTime());
-    startDate.setFullYear(startDate.getFullYear() - 1);
-    data.value[asset.value].btcLockDateStart = formatDateToString(startDate);
+    const endDate = dayjs.utc(newValue);
+    const startDate = endDate.subtract(1, 'year');
+    data.value[asset.value].btcLockDateStart = startDate.format('YYYY/MM/DD');
     isUpdatingBtcDates = false;
   }
 }, { immediate: true });

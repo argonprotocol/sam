@@ -1,8 +1,12 @@
+import dayjs, { type Dayjs } from "dayjs";
+import utc from "dayjs/plugin/utc";
 import IRules from "../interfaces/IRules";
-import { addCommas } from "./utils";
-import Vault from "./Vault";
+import Reserve, { IReserveMeta } from "./Reserve";
+import { addCommas } from "./Utils";
+import Vault, { IVaultMeta } from "./Vault";
 
-export const TERRA_BLOCKS_PER_HOUR = 3600 / 6; // 1 block every 6 seconds
+dayjs.extend(utc);
+
 export const ARGON_BLOCKS_PER_HOUR = 3600 / 60; // 1 block every 60 seconds
 
 export const MINIMUM_PRICE = 0.001;
@@ -10,230 +14,408 @@ export const MAXIMUM_PRICE = 1.00;
 
 export default class Marker {
   public id = ++Marker.idCount;
-  public type: 'argon' | 'terra';
-  public startingDate: Date;
+  public startingDate: Dayjs;
   public durationInHours: number;
-  public startingPrice: number;
+  
   public startingCirculation: number;
-  public startingBitcoinsVaulted: number;
-  public previousMarkers: Marker[];
-  // This tracks the amount of argon burned during bitcoin fusion
-  public burnedByBitcoins: number[] = [];
+  public startingCapital: number;
+
+  public startingVaultMeta: IVaultMeta = {
+    bitcoins: 0,
+    lockedValue: 0,
+    leveragePerDollar: 0,
+  };
+
+  public endingVaultMeta: IVaultMeta = {
+    bitcoins: 0,
+    lockedValue: 0,
+    leveragePerDollar: 0,
+  };
   
-  // This tracks the amount of argon burned during bitcoin fusion
-  public burnedByTaxation: number[] = [];
+  public startingReserveMeta: IReserveMeta = {
+    amountRemaining: 0,
+    amountSpent: 0,
+    leveragePerDollar: 0,
+  };
 
-  // This tracks the amount of bitcoins unvaulted during bitcoin fusion
-  public bitcoinsUnvaulted: number[] = [];
+  public endingReserveMeta: IReserveMeta = {
+    amountRemaining: 0,
+    amountSpent: 0,
+    leveragePerDollar: 0,
+  };
 
-  // This is used to remove terra from circulation during its collapse to match what actually happened  
-  public bailoutReductionOnCirculation: number[] = [];
-
-  // This track the amount of capital outflow during collapse
-  public capitalOutflow: number[] = [];
+  public circulationAdded: number = 0;
+  public circulationRemoved: number = 0;
   
-  public certaintyGreedInflow: number[] = [];
+  public circulationAddedMap: { [key: string]: number } = {};
+  public circulationRemovedMap: { [key: string]: number } = {};
 
-  private vault: Vault;
+  public capitalAdded: number = 0;
+  public capitalRemoved: number = 0;
 
-  constructor(type: 'argon' | 'terra', startingDate: Date, durationInHours: number, startingPrice: number, startingCirculation: number, vault: Vault, previousMarkers: Marker[] = []) {
-    this.type = type;
+  public capitalAddedMap: { [key: string]: number } = {};
+  public capitalRemovedMap: { [key: string]: number } = {};
+
+  public seigniorage: number = 0;
+
+  public profitFromTaxation: number;
+  public profitFromChanges: number;
+
+  constructor(startingDate: Dayjs, durationInHours: number, startingCirculation: number, startingCapital: number) {
     this.startingDate = startingDate;
     this.durationInHours = durationInHours;
-    this.startingPrice = startingPrice;
     this.startingCirculation = startingCirculation;
-    this.vault = vault;
-    this.previousMarkers = previousMarkers;
+    this.startingCapital = startingCapital;
+  }
+
+  public get startingPrice(): number {
+    return Marker.calculatePriceFromSupplyAndDemand(this.startingCirculation, this.startingCapital);
+  }
+
+  public get endingDate() {
+    return this.nextDate.subtract(1, 'millisecond');
   }
 
   public get nextDate() {
     const millisecondsToAdd = (this.durationInHours * 60 * 60 * 1000);
-    return new Date(this.startingDate.getTime() + millisecondsToAdd);
-  }
-
-  public get endingDate() {
-    return new Date(this.nextDate.getTime() - 1);
+    return this.startingDate.add(millisecondsToAdd, 'millisecond');
   }
 
   public get currentPrice() {
     const currentSupply = this.currentCirculation;
-    const currentDemand = this.currentStablecoinDemand;
-    const price = this.calculatePriceFromSupplyAndDemand(currentSupply, currentDemand);
+    const currentDemand = this.currentCapital;
+    const price = Marker.calculatePriceFromSupplyAndDemand(currentSupply, currentDemand);
     return price;
   }
 
-  public get currentCirculation() {
-    const removedThroughBailout = this.bailoutReductionOnCirculation.reduce((acc, amount) => acc + amount, 0);
-    const burnedByBitcoins = this.burnedByBitcoins.reduce((acc, amount) => acc + amount, 0);
-    const burnedByTaxation = this.burnedByTaxation.reduce((acc, amount) => acc + amount, 0);
-    return this.startingCirculation - (removedThroughBailout + burnedByBitcoins + burnedByTaxation);
+  public get currentCirculation() {    
+    return this.startingCirculation - this.circulationRemoved + this.circulationAdded + this.seigniorage;
   }
 
-  public get currentBitcoinsVaulted() {
-    const bitcoinsUnvaulted = this.bitcoinsUnvaulted.reduce((acc, amount) => acc + amount, 0);
-    return this.startingBitcoinsVaulted - bitcoinsUnvaulted;
-  }
-
-  public get currentStablecoinDemand(): number {
-    // We use starting values because the only thing that changes the value is bailoutReductionOnCirculation
-    const currentCirculation = this.startingCirculation - this.bailoutReductionOnCirculation.reduce((acc, amount) => acc + amount, 0);
-    const baseDemand = currentCirculation * this.startingPrice;
-    const capitalOutflow = this.capitalOutflow.reduce((acc, outflow) => acc + outflow, 0);
-    const capitalInflow = this.certaintyGreedInflow.reduce((acc, inflow) => acc + inflow, 0);
-    return (baseDemand + capitalInflow) - capitalOutflow;
+  public get currentCapital(): number {
+    return this.startingCapital - this.capitalRemoved + this.capitalAdded;
   }
 
   public get blockCount() {
-    return this.durationInHours * (this.type === 'argon' ? ARGON_BLOCKS_PER_HOUR : TERRA_BLOCKS_PER_HOUR);
+    return this.durationInHours * ARGON_BLOCKS_PER_HOUR;
   }
 
-  public get profitPotential() {
-    return this.calculateProfitReturn(this.startingPrice, this.currentPrice);
+  public get profitFromTaxationCompoundedAnnually() {
+    return Math.pow(this.profitFromTaxation + 1, (365 * 24) / this.durationInHours) - 1;
   }
 
-  public get profitPotentialCompoundedAnnually() {
-    return Math.pow(this.profitPotential + 1, (365 * 24) / this.durationInHours) - 1;
+  public addCirculation(amount: number, source: string) {
+    this.circulationAdded += amount;
+    this.circulationAddedMap[source] = (this.circulationAddedMap[source] || 0) + amount;
   }
 
-  public get isArgon() {
-    return this.type === 'argon';
+  public removeCirculation(amount: number, source: string) {
+    this.circulationRemoved += amount;
+    this.circulationRemovedMap[source] = (this.circulationRemovedMap[source] || 0) + amount;
   }
 
-  public get isTerra() {
-    return this.type === 'terra';
+  public addCapital(amount: number, source: string) {
+    this.capitalAdded += amount;
+    this.capitalAddedMap[source] = (this.capitalAddedMap[source] || 0) + amount;
   }
 
-  public runBeginningOfCollapse(capitalOutflow: number) {
-    this.capitalOutflow.push(capitalOutflow);
+  public removeCapital(amount: number, source: string) {
+    this.capitalRemoved += amount;
+    this.capitalRemovedMap[source] = (this.capitalRemovedMap[source] || 0) + amount;
   }
 
-  public runRemainingCollapse(previousReturn: number) {
+  public updateProfitFromTaxation() {
+    const transactionTaxes = this.circulationRemovedMap['TransactionalTaxes'] || 0;
+    const micropaymentTaxes = this.circulationRemovedMap['MicropaymentTaxes'] || 0;
+    const allTaxes = transactionTaxes + micropaymentTaxes;
+    const currentCirculation = this.startingCirculation - allTaxes;
+    
+    const endingPrice = Marker.calculatePriceFromSupplyAndDemand(currentCirculation, this.startingCapital);
+
+    this.profitFromTaxation = Marker.calculateProfitReturn(this.startingPrice, endingPrice);
+  }
+
+  public updateProfitFromChanges() {
+    this.profitFromChanges = Marker.calculateProfitReturn(this.startingPrice, this.currentPrice);  
+  }
+
+  public removeCirculationUsingReserveCapital(amountToBurn: number, reserve: Reserve) {
+    this.startingReserveMeta = reserve.exportMeta(this.currentPrice);
+    const amountToSpend = reserve.spend(amountToBurn);
+    const tokensToBurn = amountToSpend * this.currentPrice;
+    this.removeCirculation(tokensToBurn, 'ReserveSpend');
+    this.endingReserveMeta = reserve.exportMeta(this.currentPrice);
+  }
+
+  public runContinuingCollapse(previousReturn: number) {
     const startingDemand = this.startingCirculation * this.startingPrice;
-    const nextPrice = this.calculateNextPrice(this.startingPrice, previousReturn);
+    const nextPrice = Marker.calculateNextPrice(this.startingPrice, previousReturn);
     const nextDemand = this.startingCirculation * nextPrice;
     const capitalOutflow = startingDemand - nextDemand;
     if (capitalOutflow <= 0) return;
 
-    this.capitalOutflow.push(capitalOutflow);
+    this.removeCapital(capitalOutflow, 'ContinuingCollapse');
   }
 
-  public runRecovery(rules: IRules) {
-    this.runTaxation(rules.taxableEvents, rules.micropayments);
 
-    if (rules.certaintyGreedEnabled && this.currentPrice < MAXIMUM_PRICE) {
-      this.runCertaintyGreed(rules.certaintyGreedLow, rules.certaintyGreedHigh, rules.certaintyLatencyLow, rules.certaintyLatencyHigh);
-    }
-
-    if (this.currentPrice < MAXIMUM_PRICE) {
-      this.runSpeculativeGreed();
-    }
-
-    if (this.isArgon && this.currentPrice < MAXIMUM_PRICE) {
-      this.runBitcoinFusion(rules);
+  public setVault(rules: IRules, vault: Vault) {
+    if (rules.enableBitcoinVaulting) {
+      this.startingVaultMeta = vault.exportMeta(this.startingPrice);
+      this.endingVaultMeta = vault.exportMeta(this.currentPrice);
     }
   }
 
-  public runBitcoinFusion(rules: IRules) {
-    const excessArgons = this.calculateExcessSupply(this.currentCirculation);
-    const burnPerBitcoinDollar = this.vault.calculateBurnPerBitcoinDollar(this.startingPrice);
-    const bitcoinsNeeded = excessArgons / (burnPerBitcoinDollar * this.vault.pricePerBtc);
-    const bitcoinsToUnvault = Math.min(bitcoinsNeeded, rules.btcMaxTxns, this.vault.bitcoins);
+  public setReserve(rules: IRules, reserve: Reserve) {
+    if (rules.enableReservePurchasingPower) {
+      this.startingReserveMeta = reserve.exportMeta(this.startingPrice);
+      this.endingReserveMeta = reserve.exportMeta(this.currentPrice);
+    }
+  }
 
-    // Calculate the minimum price per bitcoin that would still burn the excess supply
-    const minPricePerBitcoin = excessArgons / burnPerBitcoinDollar / (this.vault.bitcoins || 1);
+  public setVaultAndReserve(rules: IRules, vault: Vault, reserve: Reserve) {
+    this.setVault(rules, vault);
+    this.setReserve(rules, reserve);
+  }
 
-    const bitcoinSnapshot = {
-      excessArgons,
-      valueOfStablecoinDemand: this.currentStablecoinDemand,
-      bitcoinsVaulted: this.vault.bitcoins,
-      burnPerBitcoinDollar,
-      bitcoinsNeeded,
-      minPricePerBitcoin,
-      bitcoinsUnvaulted: bitcoinsToUnvault,
+
+  public tryTaxation(rules: IRules) {
+    if (rules.enableTaxation) {
+      this.runTaxation(rules.transactionsAnnually, rules.micropaymentsAnnually);
+      this.updateProfitFromTaxation();
+    }
+  }
+
+  public mintIfNeeded(rules: IRules) {
+    if (this.currentPrice > 1.0) {
+      const currentSupply = this.currentCirculation;
+      const currentDemand = this.currentCapital;
+      this.seigniorage += currentDemand - currentSupply;
+    }
+  }
+
+  public runRecovery(rules: IRules, previousMarkers: Marker[], vault: Vault) {
+    this.tryTaxation(rules);
+
+    if (rules.enableCertaintyGreed && this.currentPrice < MAXIMUM_PRICE) {
+      this.runCertaintyGreed(rules, previousMarkers);
     }
 
-    this.vault.unvault(bitcoinsToUnvault);
-    this.burnedByBitcoins.push(bitcoinsToUnvault * (burnPerBitcoinDollar * this.vault.pricePerBtc));
-    this.bitcoinsUnvaulted.push(bitcoinsToUnvault);
-  }
-
-  public runSpeculativeGreed() {
-
-  }
-
-  public runTaxation(taxableTransactionsAnnually: number, micropaymentsAnnually: number) {
-    const taxableTransactionsHourly = taxableTransactionsAnnually / 365 / 24;
-    const micropaymentRevenueHourly = micropaymentsAnnually / 365 / 24;
-
-    const taxableTransactions = taxableTransactionsHourly * this.durationInHours;
-    const micropaymentRevenue = micropaymentRevenueHourly * this.durationInHours;
-
-    const burnFromTransactions = taxableTransactions * 0.20;
-    const burnFromMicropaymentRevenue = this.calculateWageProtectedPrice(micropaymentRevenue) * 0.20;
-
-    let burnTotal = burnFromTransactions + burnFromMicropaymentRevenue;
-    if (this.startingCirculation - burnTotal < this.currentStablecoinDemand) {
-      // If the burn is too much, we need to reduce it to the amount that is needed to match the demand. In the real world,
-      // this would push the argon above 1.00 and profit the Ownership Tokens through minting. However, that is beyond the scope of
-      // SAM, so in this simulation we're just going to ignore it.
-      burnTotal = this.startingCirculation - this.currentStablecoinDemand;
+    this.startingVaultMeta = vault.exportMeta(this.startingPrice);
+    if (rules.enableBitcoinVaulting && this.currentPrice < MAXIMUM_PRICE) {
+      this.runBitcoinFusion(rules, vault);
     }
+    this.endingVaultMeta = vault.exportMeta(this.currentPrice);
 
-    this.burnedByTaxation.push(burnTotal);
+    this.updateProfitFromChanges();
+
+    if (rules.enableSpeculativeGreed && this.currentPrice < MAXIMUM_PRICE) {
+      this.runSpeculativeGreed(rules, previousMarkers);
+      this.updateProfitFromChanges();
+    }
   }
 
-  public runCertaintyGreed(greedLow: number, greedHigh: number, latencyLow: number, latencyHigh: number) {
-    // There may be a better way to do this, but this is the current idea:
-    // We look at the profit potential of the previous markers and only add to the current marker's certainty greed if the profit potential is
-    // between the greedLow and greedHigh. We also only look at the previous markers up to the latencyHigh.
+  public runTaxation(transactionsAnnually: number, micropaymentsAnnually: number) {
+    const transactionsHourly = transactionsAnnually / 365 / 24;
+    const micropaymentsHourly = micropaymentsAnnually / 365 / 24;
 
+    const transactionsToTax = transactionsHourly * this.durationInHours;
+    const micropaymentsToTax = micropaymentsHourly * this.durationInHours;
+
+    this.removeCirculation(transactionsToTax * 0.20, 'TransactionalTaxes');
+    this.removeCirculation(Marker.calculateWageProtectedPrice(micropaymentsToTax, this.startingPrice) * 0.20, 'MicropaymentTaxes');
+  }
+
+
+  public runSpeculativeGreed(rules: IRules, previousMarkers: Marker[]) {
     const profitPotentials = [];
-    const previousMarkers = this.previousMarkers.slice(-latencyHigh).reverse();
-    if (previousMarkers.length < latencyLow) {
-      return;
-    }    
 
-    for (let index = 0; index < previousMarkers.length; index++) {
-      const marker = previousMarkers[index];
-      if (marker.profitPotentialCompoundedAnnually < greedLow && index < latencyLow) {
+    const cappedMarkers = previousMarkers.slice(-rules.speculativeLatencyHigh);
+    if (cappedMarkers.length < rules.speculativeLatencyLow || 1) {
+      // The minimum timeframe must have passed
+      return;
+    }
+
+    for (let index = cappedMarkers.length - 1; index >= 0; index--) {
+      const marker = cappedMarkers[index];
+      const hoursPassed = (cappedMarkers.length - 1) - index;
+      if (marker.profitFromChanges < rules.speculativeGreedLow && hoursPassed < rules.speculativeLatencyLow) {
+        /*
+         * If any of the markers within latencyLow have a profit lower than greedLow,
+         * then we must completely bail. This ensures we only proceed when all recent
+         * markers meet the minimum profit threshold.
+         */
         return;
       }
-      const profitPotential = marker.profitPotentialCompoundedAnnually;
-      profitPotentials.push(profitPotential >= greedLow ? profitPotential : 0);
+      // only accept markers that had profit above greedLow, otherwise treat profit as zero
+      const profitPotential = marker.profitFromChanges;
+      profitPotentials.push(profitPotential >= rules.speculativeGreedLow ? profitPotential : 0);
     }
 
     const averageProfitPotential = profitPotentials.reduce((acc, potential) => acc + potential, 0) / profitPotentials.length;
-    const greedFactor = Math.min((averageProfitPotential - greedLow) / (greedHigh - greedLow), 1) / 24;
 
-    if (averageProfitPotential >= greedHigh) {
-      this.certaintyGreedInflow.push(0.5 * this.currentStablecoinDemand);
-    } else if (averageProfitPotential > greedLow) {
-      const additionalDemand = 0.5 * this.currentStablecoinDemand * greedFactor;
-      this.certaintyGreedInflow.push(additionalDemand);
+    /**
+     * Calculates the greed factor based on the average profit potential.
+     * The greed factor is a normalized value between 0 and 1, representing
+     * the relative position of the average profit potential between the
+     * greedLow and greedHigh thresholds. It is divided by 24 to adjust
+     * for hourly calculations.
+     */
+    const greedFactor = Math.min((averageProfitPotential - rules.speculativeGreedLow) / (rules.speculativeGreedHigh - rules.speculativeGreedLow), 1) / 24;
+    
+    /**
+     * Convert speculativeMaxDailyIncrease to an hourly increase. Then use
+     * currentCapital from yesterday's markers so it doesn't
+     * compound over 24 hours into a return that's larger than the max.
+     */
+    const maxHourlyIncrease = rules.speculativeMaxDailyIncrease / 24;
+    const yesterdaysMarker = cappedMarkers[cappedMarkers.length - 24];
+
+    if (averageProfitPotential >= rules.speculativeGreedHigh) {
+      this.addCapital(maxHourlyIncrease * yesterdaysMarker.currentCapital, 'SpeculativeGreed');
+    } else if (averageProfitPotential > rules.speculativeGreedLow) {
+      const additionalDemand = maxHourlyIncrease * yesterdaysMarker.currentCapital * greedFactor;
+      this.addCapital(additionalDemand, 'SpeculativeGreed');
     }
   }
 
-  public runCertaintyLatency() {
+  public runCertaintyGreed(rules: IRules, previousMarkers: Marker[]) {    
+    /**
+     * CertaintyGreed predicts new capital inflows based on guaranteed annual profits
+     * calculated only on taxation burning the excess capital.
+     * 
+     * This mechanism models investor behavior in response to predictable returns,
+     * encouraging capital inflow when profit potentials are consistently high.
+     */
 
+    const profitPotentials = [];
+
+    const cappedMarkers = previousMarkers.slice(-rules.certaintyLatencyHigh);
+    if (cappedMarkers.length < rules.certaintyLatencyLow || 1) {
+      // The minimum timeframe must have passed
+      return;
+    }
+
+    for (let index = cappedMarkers.length - 1; index >= 0; index--) {
+      const marker = cappedMarkers[index];
+      const hoursPassed = (cappedMarkers.length - 1) - index;
+      if (marker.profitFromTaxationCompoundedAnnually < rules.certaintyGreedLow && hoursPassed < rules.certaintyLatencyLow) {
+        /*
+         * If any of the markers within latencyLow have a profit lower than greedLow,
+         * then we must completely bail. This ensures we only proceed when all recent
+         * markers meet the minimum profit threshold.
+         */
+        return;
+      }
+      // only accept markers that had profit above greedLow, otherwise treat profit as zero
+      const profitPotential = marker.profitFromTaxationCompoundedAnnually;
+      profitPotentials.push(profitPotential >= rules.certaintyGreedLow ? profitPotential : 0);
+    }
+
+    const averageProfitPotential = profitPotentials.reduce((acc, potential) => acc + potential, 0) / profitPotentials.length;
+
+    /**
+     * Calculates the greed factor based on the average profit potential.
+     * The greed factor is a normalized value between 0 and 1, representing
+     * the relative position of the average profit potential between the
+     * greedLow and greedHigh thresholds. It is divided by 24 to adjust
+     * for hourly calculations.
+     */
+    const greedFactor = Math.min((averageProfitPotential - rules.certaintyGreedLow) / (rules.certaintyGreedHigh - rules.certaintyGreedLow), 1) / 24;
+    
+    /**
+     * Convert certaintyMaxDailyIncrease to an hourly increase. Then use
+     * currentCapital from yesterday's markers so it doesn't
+     * compound over 24 hours into a return that's larger than the max.
+     */
+    const maxHourlyIncrease = rules.certaintyMaxDailyIncrease / 24;
+    const yesterdaysMarker = cappedMarkers[cappedMarkers.length - 24];
+
+    console.log(yesterdaysMarker)
+
+    if (averageProfitPotential >= rules.certaintyGreedHigh) {
+      this.addCapital(maxHourlyIncrease * yesterdaysMarker.currentCapital, 'CertaintyGreed');
+    } else if (averageProfitPotential > rules.certaintyGreedLow) {
+      const additionalDemand = maxHourlyIncrease * yesterdaysMarker.currentCapital * greedFactor;
+      this.addCapital(additionalDemand, 'CertaintyGreed');
+    }
   }
 
-  public manuallyRemoveCirculation(amount: number) {
-    this.bailoutReductionOnCirculation.push[amount];
+  public runBitcoinFusion(rules: IRules, vault: Vault) {
+    const excessCirculationSupply = this.calculateExcessSupply(this.currentCirculation);
+    const burnPerBitcoinDollar = vault.calculateBurnPerBitcoinDollar(this.startingPrice);
+    const bitcoinsNeeded = excessCirculationSupply / (burnPerBitcoinDollar * vault.pricePerBtc);
+    const bitcoinsToUnvault = Math.min(bitcoinsNeeded, rules.btcMaxTxns, vault.bitcoins);
+
+    vault.unvault(bitcoinsToUnvault);
+    this.removeCirculation(bitcoinsToUnvault * (burnPerBitcoinDollar * vault.pricePerBtc), 'BitcoinFusion');
   }
 
-  private calculatePriceFromSupplyAndDemand(currentCirculationSupply: number, currentDemandValue: number): number {
-    return currentDemandValue / currentCirculationSupply;
+  public toJsonCache(): IJsonCache {
+    return {
+      id: this.id,
+      startingDate: this.startingDate.toISOString(),
+      durationInHours: this.durationInHours,
+      startingCirculation: this.startingCirculation,
+      startingCapital: this.startingCapital,
+      startingVaultMeta: this.startingVaultMeta,
+      endingVaultMeta: this.endingVaultMeta,
+      startingReserveMeta: this.startingReserveMeta,
+      endingReserveMeta: this.endingReserveMeta,
+      circulationAddedMap: this.circulationAddedMap,
+      circulationRemovedMap: this.circulationRemovedMap,
+      capitalAddedMap: this.capitalAddedMap,
+      capitalRemovedMap: this.capitalRemovedMap,
+    };
+  }
+
+  public toJson(): IJson {
+    return {
+      id: this.id,
+      blockCount: this.blockCount,
+      startingDate: this.startingDate.toISOString(),
+      endingDate: this.endingDate.toISOString(),
+      durationInHours: this.durationInHours,
+      startingCirculation: this.startingCirculation,
+      endingCirculation: this.currentCirculation,
+      startingCapital: this.startingCapital,
+      endingCapital: this.currentCapital,
+      startingPrice: this.startingPrice,
+      endingPrice: this.currentPrice,
+      startingVaultMeta: this.startingVaultMeta,
+      endingVaultMeta: this.endingVaultMeta,
+      startingReserveMeta: this.startingReserveMeta,
+      endingReserveMeta: this.endingReserveMeta,
+      circulationAddedMap: this.circulationAddedMap,
+      circulationRemovedMap: this.circulationRemovedMap,
+      capitalAddedMap: this.capitalAddedMap,
+      capitalRemovedMap: this.capitalRemovedMap,
+      profitFromTaxation: this.profitFromTaxation,
+      profitFromTaxationCompoundedAnnually: this.profitFromTaxationCompoundedAnnually,
+      profitFromChanges: this.profitFromChanges,
+      seigniorage: this.seigniorage,
+    };
+  }
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Static methods
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  public static calculateCapitalFromCirculationAndPrice(circulation: number, price: number): number {
+    return circulation * price;
+  }
+
+  private static calculatePriceFromSupplyAndDemand(currentCirculationSupply: number, currentCapitalDemand: number): number {
+    return currentCapitalDemand / currentCirculationSupply;
   }
 
   public calculateExcessSupply(circulation: number): number {
-    return circulation - this.currentStablecoinDemand;
+    return circulation - this.currentCapital;
   }
 
-  public calculateProfitReturn(startingPrice: number, endingPrice: number): number {
+  public static calculateProfitReturn(startingPrice: number, endingPrice: number): number {
     return (endingPrice - startingPrice) / startingPrice;
   }
 
-  private calculateNextPrice(startingPrice: number, previousReturn: number): number {
+  private static calculateNextPrice(startingPrice: number, previousReturn: number): number {
     if (previousReturn >= 0) {
       return startingPrice;
     }
@@ -246,43 +428,42 @@ export default class Marker {
     return Math.max(nextPrice, MINIMUM_PRICE);
   }
 
-  private calculateWageProtectedPrice(micropayments: number): number {
-    const inflationIndex = this.calculateInflationIndex(this.currentPrice);
+  private static calculateWageProtectedPrice(micropaymentAmount: number, priceAsRatio: number): number {
+    const inflationIndex = this.calculateInflationIndex(priceAsRatio);
     if (inflationIndex <= 100) {
-      return micropayments;
+      return micropaymentAmount;
     } else {
-      return micropayments * (1 + ((inflationIndex - 100) / 100));
+      return micropaymentAmount * (1 + ((inflationIndex - 100) / 100));
     }
   }
 
-  private calculateInflationIndex(ratio: number): number {
-    return 100 * (1 + (1 - ratio) / ratio);
+  private static calculateInflationIndex(priceAsRatio: number): number {
+    return 100 * (1 + (1 - priceAsRatio) / priceAsRatio);
   }
-
-
-  public exportToJson() {
-    return {
-      id: this.id,
-      type: this.type,
-      startingDate: this.startingDate.toISOString(),
-      durationInHours: this.durationInHours,
-      startingPrice: this.startingPrice,
-      startingCirculation: this.startingCirculation,
-      startingBitcoinsVaulted: this.startingBitcoinsVaulted,
-      burnedByBitcoins: this.burnedByBitcoins,
-      burnedByTaxation: this.burnedByTaxation,
-      bitcoinsUnvaulted: this.bitcoinsUnvaulted,
-      bailoutReductionOnCirculation: this.bailoutReductionOnCirculation,
-      capitalOutflow: this.capitalOutflow,
-      certaintyGreedInflow: this.certaintyGreedInflow,
-    };
-  }
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Static methods
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   public static idCount = 0;
+
+  public static fromJsonCache(obj: IJsonCache): Marker {
+    const marker = new Marker(
+      dayjs.utc(obj.startingDate),
+      obj.durationInHours,
+      obj.startingCirculation,
+      obj.startingCapital, 
+    );
+    marker.circulationAddedMap = obj.circulationAddedMap;
+    marker.circulationRemovedMap = obj.circulationRemovedMap;
+    marker.capitalAddedMap = obj.capitalAddedMap;
+    marker.capitalRemovedMap = obj.capitalRemovedMap;
+    marker.startingVaultMeta = obj.startingVaultMeta;
+    marker.endingVaultMeta = obj.endingVaultMeta;
+    marker.startingReserveMeta = obj.startingReserveMeta;
+    marker.endingReserveMeta = obj.endingReserveMeta;
+
+    marker.updateProfitFromTaxation();
+    marker.updateProfitFromChanges();
+
+    return marker;
+  }
 
   public static merge(markers: Marker[]) {
     if (markers.length === 0) {
@@ -291,31 +472,76 @@ export default class Marker {
 
     const firstMarker = markers[0];
     const lastMarker = markers[markers.length - 1];
-    const durationInHours = Math.round((lastMarker.nextDate.getTime() - firstMarker.startingDate.getTime()) / (1000 * 60 * 60));
+    const durationInHours = lastMarker.nextDate.diff(firstMarker.startingDate, 'hour');
+    const merged = new Marker(firstMarker.startingDate, durationInHours, firstMarker.startingCirculation, firstMarker.startingCapital);
+    
+    merged.startingVaultMeta = firstMarker.startingVaultMeta;
+    merged.endingVaultMeta = lastMarker.endingVaultMeta;
 
-    const merged = new Marker(markers[0].type, markers[0].startingDate, durationInHours, markers[0].startingPrice, markers[0].startingCirculation, markers[0].vault);
-    merged.startingBitcoinsVaulted = firstMarker.startingBitcoinsVaulted;
-    merged.bailoutReductionOnCirculation = markers.reduce((acc, marker) => {
-      acc.push(...marker.bailoutReductionOnCirculation);
-      return acc;
-    }, []);
-    merged.burnedByBitcoins = markers.reduce((acc, marker) => {
-      acc.push(...marker.burnedByBitcoins);
-      return acc;
-    }, []);
-    merged.burnedByTaxation = markers.reduce((acc, marker) => {
-      acc.push(...marker.burnedByTaxation);
-      return acc;
-    }, []);
-    merged.bitcoinsUnvaulted = markers.reduce((acc, marker) => {
-      acc.push(...marker.bitcoinsUnvaulted);
-      return acc;
-    }, []);
-    merged.capitalOutflow = markers.reduce((acc, marker) => {
-      acc.push(...marker.capitalOutflow);
-      return acc;
-    }, []);
+    merged.startingReserveMeta = firstMarker.startingReserveMeta;
+    merged.endingReserveMeta = firstMarker.endingReserveMeta;
+
+    markers.forEach(marker => {
+      merged.seigniorage += marker.seigniorage;
+      Object.entries(marker.circulationAddedMap).forEach(([key, value]) => {
+        merged.addCirculation(value || 0, key);
+      });
+      Object.entries(marker.circulationRemovedMap).forEach(([key, value]) => {
+        merged.removeCirculation(value || 0, key);
+      });
+      Object.entries(marker.capitalAddedMap).forEach(([key, value]) => {
+        merged.addCapital(value || 0, key);
+      });
+      Object.entries(marker.capitalRemovedMap).forEach(([key, value]) => {
+        merged.removeCapital(value || 0, key);
+      });
+    });
+
+    merged.updateProfitFromTaxation();
+    merged.updateProfitFromChanges();
 
     return merged;
   }
 } 
+
+interface IJsonCache {
+  id: number;
+  durationInHours: number;
+  startingDate: string;
+  startingCirculation: number;
+  startingCapital: number;
+  startingVaultMeta: IVaultMeta;
+  endingVaultMeta: IVaultMeta;
+  startingReserveMeta: IReserveMeta;
+  endingReserveMeta: IReserveMeta;
+  circulationAddedMap: { [key: string]: number };
+  circulationRemovedMap: { [key: string]: number };
+  capitalAddedMap: { [key: string]: number };
+  capitalRemovedMap: { [key: string]: number };
+}
+
+interface IJson {
+  id: number;
+  blockCount: number;
+  durationInHours: number;
+  startingDate: string;
+  endingDate: string;
+  startingPrice: number;
+  endingPrice: number;
+  startingCirculation: number;
+  endingCirculation: number;
+  startingCapital: number;
+  endingCapital: number;
+  startingVaultMeta: IVaultMeta;
+  endingVaultMeta: IVaultMeta;
+  startingReserveMeta: IReserveMeta;
+  endingReserveMeta: IReserveMeta;
+  circulationAddedMap: { [key: string]: number };
+  circulationRemovedMap: { [key: string]: number };
+  capitalAddedMap: { [key: string]: number };
+  capitalRemovedMap: { [key: string]: number };
+  profitFromTaxation: number;
+  profitFromTaxationCompoundedAnnually: number;
+  profitFromChanges: number;
+  seigniorage: number;
+}

@@ -1,5 +1,5 @@
 import path from 'path';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import loadCsvFile from './loadCsvFile';
 import FeeRecord from '../interfaces/FeeRecord';
 import BtcPrices from './BtcPrices';
@@ -15,7 +15,7 @@ export default class BtcFees {
   static get(date: string): number {
     const feeInBitcoins = this.getInBitcoins(date);
     if (!feeInBitcoins) {
-      const lastDate = moment(date).subtract(1, 'day').format('YYYY-MM-DD')
+      const lastDate = dayjs.utc(date).subtract(1, 'day').format('YYYY-MM-DD')
       return this.get(lastDate);
     }
     const dollarToBitcoin = BtcPrices.get(date).price;

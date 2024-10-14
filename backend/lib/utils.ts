@@ -42,7 +42,7 @@ export function calculateCompoundedReturn(discreteReturn, days) {
 
 export function addCommas(num: string | number, decimals = 2) {
   num = num.toString();
-  return isInt(num) ? addCommasToInt(num) : addCommasToFloat(num, decimals);
+  return isInt(num) || decimals === 0 ? addCommasToInt(num) : addCommasToFloat(num, decimals);
 }
 
 export function addCommasToInt(str: string) {

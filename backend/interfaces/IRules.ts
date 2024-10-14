@@ -1,15 +1,13 @@
 export default interface IRules {
   circulation: number;
-  inflation: number;
-  taxableEvents: number;
-  micropayments: number;
-  poolDepegPct: number;
-  poolDepegDate: string;
-  sellerFearLow: number;
-  sellerFearHigh: number;
-  sellerFearWithinHours: number;
-  sellerLatencyLow: number;
-  sellerLatencyHigh: number;
+
+  dollarInflation: number;
+
+  enableTaxation: boolean;
+  transactionsAnnually: number;
+  micropaymentsAnnually: number;
+
+  enableBitcoinVaulting: boolean;
   btcVaulted: number;
   btcLockDateStart: string;
   btcLockDateEnd: string;
@@ -22,15 +20,22 @@ export default interface IRules {
   unvaultGreedHigh: number;
   unvaultLatencyLow: number;
   unvaultLatencyHigh: number;
-  certaintyGreedEnabled: boolean;
+
+  enableCertaintyGreed: boolean;
   certaintyGreedLow: number;
   certaintyGreedHigh: number;
   certaintyLatencyLow: number;
   certaintyLatencyHigh: number;
-  speculationGreedLow: number;
+  certaintyMaxDailyIncrease: number;
+
+  enableSpeculativeGreed: boolean;
+  speculativeGreedLow: number;
   speculativeGreedHigh: number;
   speculativeGreedWithinHours: number;
   speculativeLatencyLow: number;
   speculativeLatencyHigh: number;
-  enableRecoveryDuringFall: boolean;
+  speculativeMaxDailyIncrease: number;
+
+  disableRecoveryDuringFall: boolean;
+  enableReservePurchasingPower: number;
 }

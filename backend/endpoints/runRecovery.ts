@@ -1,5 +1,5 @@
 import ChartController from "../controllers/ChartController";
-import { toNumber } from "../lib/utils";
+import { toNumber } from "../lib/Utils";
 
 export default async function runRecovery(req: Request) {
   const chartController = new ChartController();

@@ -1,3 +1,5 @@
+import numbro from 'numbro';
+
 export const AVG_BLOCKS_PER_DAY = 6 * 24;
 export const US_CPI_AT_START = 292.7;
 
@@ -40,8 +42,9 @@ export function calculateCompoundedReturn(discreteReturn, days) {
   return Math.pow(periodicRate, periodsPerYear) - 1;
 }
 
-export function addCommas(num: string | number, decimals = 2) {
+export function addCommas(num: string | number, decimals?: number) {
   num = num.toString();
+  decimals = decimals || countDecimals(num);
   return isInt(num) ? addCommasToInt(num) : addCommasToFloat(num, decimals);
 }
 
@@ -49,6 +52,20 @@ export function addCommasToInt(str: string) {
   const arr = str.toString().split('.');
   const int = arr[0];
   return int.replace(/(\d)(?=(\d{3})+$)/g, '$1,');
+}
+
+function countDecimals(num: number | string) {
+  // Convert the number to a string
+  const numberStr = typeof num === 'number' ? num.toString() : num;
+
+  // Check if the number contains a decimal point
+  if (numberStr.includes('.')) {
+    // Split the string at the decimal point and return the length of the part after the decimal
+    return numberStr.split('.')[1].length;
+  } else {
+    // If there's no decimal point, the number has 0 decimal places
+    return 0;
+  }
 }
 
 export function addCommasToFloat(str: string, decimals = 2) {
@@ -72,6 +89,17 @@ export function currency(num: string | number) {
 export function isInt(n: any) {
   if (typeof n === 'string') return !n.includes('.');
   return n % 1 === 0;
+}
+
+export function formatShorthandNumber(value: number | string) {
+  if (value === '--') {
+    return value;
+  }
+  return numbro(value).format({
+    average: true,
+    mantissa: 1,
+    optionalMantissa: true,
+  }).toUpperCase();
 }
 
 /////////////////////////////////////////////////////////////

@@ -30,13 +30,13 @@
           </div>
 
           <div class="absolute left-0 w-full top-[50%] h-2 mt-[-0.5%] border-b-4 border-dotted border-slate-300 z-0"></div>
-          <div @click="runSimulation('recovery')" v-if="stepStage >= 3" :class="{previousRunning: stepStage === 3, current: stepStage === 4}" :style="`left: ${recoveryLeftPos}%; top: ${recoveryTopPos}%`" @mouseenter="iconEnter('recovery')" @mouseleave="iconLeave()" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute z-20 border border-slate-400 ml-[2px]">
+          <div @click="runSimulation('recovery')" v-if="stepStage >= 3" :class="{previousRunning: stepStage === 3, current: stepStage === 4}" :style="`left: ${recoveryLeftPos}%; top: ${recoveryTopPos}%`" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute z-20 border border-slate-400 ml-[2px]">
             <!-- <RecoveryIcon class="w-full" /> -->
           </div>
-          <div @click="runSimulation('collapse')" v-if="stepStage >= 1" :class="{previousRunning: stepStage === 1, current: stepStage === 2}" :style="`left: ${collapseLeftPos}%`" @mouseenter="iconEnter('collapse')" @mouseleave="iconLeave()" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute top-[50%] z-20 border border-slate-400">
+          <div @click="runSimulation('collapse')" v-if="stepStage >= 1" :class="{previousRunning: stepStage === 1, current: stepStage === 2}" :style="`left: ${collapseLeftPos}%`" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute top-[50%] z-20 border border-slate-400">
             <!-- <CollapseIcon class="w-full" /> -->
           </div>
-          <div @click="runSimulation('start')" :class="{current: stepStage === 0}" @mouseenter="iconEnter('start')" @mouseleave="iconLeave()" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute -left-1.5 top-[50%] z-20 border border-slate-400">
+          <div @click="runSimulation('start')" :class="{current: stepStage === 0}" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute -left-1.5 top-[50%] z-20 border border-slate-400">
             <!-- <StartIcon class="w-full" /> -->
           </div>
         </div>
@@ -68,12 +68,13 @@
   import * as Vue from 'vue';
   import { storeToRefs } from 'pinia';
   import ApexChart from 'vue3-apexcharts';
-  import { createChartOptions } from '../lib/Charts';
-  import StartIcon from '@/assets/start-icon.svg';
-  import CollapseIcon from '@/assets/collapse-icon.svg';
-  import RecoveryIcon from '@/assets/recovery-icon.svg';
+  import dayjs, { type Dayjs } from "dayjs";
+  import utc from "dayjs/plugin/utc";
+  import { createChartOptions } from '../lib/ChartConfig';
   import { useBasicStore } from '@/stores/basic';
   import API from '@/lib/API';
+
+  dayjs.extend(utc);
 
   const stepStage = Vue.ref<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
 
@@ -84,7 +85,7 @@
   };
 
   const basicStore = useBasicStore();
-  const { asset, rules, rulesToHighlight } = storeToRefs(basicStore);
+  const { asset, rules } = storeToRefs(basicStore);
 
   const xSymbol = Vue.ref('');
 
@@ -105,14 +106,6 @@
 
   function toggleYAxis() {
     xSymbol.value = !xSymbol.value ? '$' : '';
-  }
-
-  function iconEnter(icon: string) {
-    rulesToHighlight.value = icon;
-  }
-
-  function iconLeave() {
-    rulesToHighlight.value = '';
   }
 
   async function injectIntoGraph(tmpData: any, step: 'start' | 'collapse' | 'recovery', dollarData?: any) {
@@ -186,7 +179,7 @@
       cachedData[step] = data.chartMarkers;
       if (step === 'recovery') {
         const endingDate = data.chartMarkers[data.chartMarkers.length - 1][0];
-        const dollarResponse = await runDollar(new Date(endingDate));
+        const dollarResponse = await runDollar(dayjs.utc(endingDate));
         const dollarData = dollarResponse.dollarMarkers.map((item: any) => [item.date, item.price]);
         injectIntoGraph(data.chartMarkers, step, dollarData);
       } else {
@@ -195,7 +188,7 @@
     });
   }
 
-  async function runDollar(endingDate: Date) {
+  async function runDollar(endingDate: Dayjs) {
     const request = {
       endingDate,
       rules: rules.value[asset.value],

@@ -1,8 +1,20 @@
+import Decimal from "decimal.js";
+
 export const AVG_BLOCKS_PER_DAY = 6 * 24;
 export const US_CPI_AT_START = 292.7;
 
 export const AVERAGE_INFLATION = 3.8 / 100;
 export const CURRENT_INFLATION = 4.99 / 100;
+
+export function log(message: string) {
+  if (process.env.NODE_ENV !== 'test') {
+    console.log(message);
+  }
+}
+
+export function cleanRound(num: number, decimalPlaces: number = 2) {
+  return Math.round(num * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
+}
 
 export function calculateIndexInRange(number, rangeStart, rangeEnd) {
   return ((number - rangeStart) / (rangeEnd - rangeStart));
@@ -65,6 +77,10 @@ export function addCommasToFloat(str: string, decimals = 2) {
   );
 }
 
+export function divide(num: number, divisor: number, precision: number = 12) {
+  return Number(Decimal.div(num, divisor).toPrecision(precision));
+}
+
 export function currency(num: string | number) {
   return addCommas(Number(num).toFixed(2));
 }
@@ -88,8 +104,4 @@ export function calculateWageProtection(payment, cpi) {
 export function calculateTaxes(payment, currentCPI) {
   const taxRate = currentCPI >= 0.1 ? 0.3 : 0.2 + currentCPI;
   return payment * taxRate;
-}
-
-export function formatDateAsYYYYMMDD(date: Date): string {
-  return`${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
 }

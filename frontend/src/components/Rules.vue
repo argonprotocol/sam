@@ -109,9 +109,9 @@
 
         <RuleItem type="recovery" isArgon>
           <template #title>BTC Vaulted</template>
-          <template #value>${{ formatShorthandNumber(data[asset].btcVaulted) }}</template>
+          <template #value>${{ formatShorthandNumber(data[asset].btcVaultCapacityPct) }}</template>
           <template #editing>
-            <RuleInputText v-model="data[asset].btcVaulted" :min="0" :max="data[asset].circulation" isDollars />
+            <RuleInputText v-model="data[asset].btcVaultCapacityPct" :min="0" :max="data[asset].circulation" isDollars />
             of Bitcoin will have been vaulted before the collapse.
           </template>
           <template #help>
@@ -119,90 +119,59 @@
           </template>
         </RuleItem>
 
-        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaulted" isArgon>
-          <template #title>BTC Vault Dates</template>
-          <template #value>{{ data[asset].btcLockDateStart }} to {{ data[asset].btcLockDateStart }}</template>
+        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaultCapacityPct" isArgon>
+          <template #title>Start of Terra Collapse</template>
+          <template #value>{{ data[asset].startDateOfTerraCollapse }}</template>
           <template #editing>
-            Bitcoins will have been vaulted between
-            <RuleInputText v-model="data[asset].btcLockDateStart" min="2010/08/17" max="2023/08/26" isDate />
-            and
-            <RuleInputText v-model="data[asset].btcLockDateEnd" min="2011/08/17" max="2024/08/26"isDate />
+            The Terra collapse will begin on
+            <RuleInputText v-model="data[asset].startDateOfTerraCollapse" min="2011/08/17" max="2024/08/26"isDate />
           </template>
           <template #help>
             Lock Prices were set from 2022/01 to 2023/01
           </template>
         </RuleItem>
 
-        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaulted" isArgon>
+        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaultCapacityPct" isArgon>
           <template #title>BTC Ratcheting</template>
-          <template #value>{{ data[asset].btcRatcheting }}% at {{ data[asset].btcRatchetingAt }}%</template>
+          <template #value>{{ data[asset].btcRatcheting }}% at {{ data[asset].btcRatchetingPct }}%</template>
           <template #editing>
-            <RuleInputText v-model="data[asset].btcRatcheting" :min="0" :max="100" isNumber />% of vaulted bitcoins ratchet whenever the price changes by
-            <RuleInputText v-model="data[asset].btcRatchetingAt" :min="0" :max="100" isNumber />%.
+            <RuleInputText v-model="data[asset].btcRatchetingPct" :min="0" :max="100" isNumber />% of vaulted bitcoins ratchet whenever the price changes by
+            <RuleInputText v-model="data[asset].btcRatchetWhenPriceChangePct" :min="0" :max="100" isNumber />%.
           </template>
           <template #help>
             20% of vaulted bitcoins are actively ratcheting at 10%.
           </template>
         </RuleItem>
 
-        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaulted" isArgon>
+        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaultCapacityPct" isArgon>
           <template #title>BTC Price</template>
-          <template #value>${{ addCommas(data[asset].btcPrice) }}</template>
+          <template #value>${{ addCommas(data[asset].btcPriceOverride) }}</template>
           <template #editing>
             Bitcoin has a current market price of<br />
-            <RuleInputText v-model="data[asset].btcPrice" :min="1" :max="999_999" isDollars /> at the end of the collapse.
+            <RuleInputText v-model="data[asset].btcPriceOverride" :min="1" :max="999_999" isDollars /> at the end of the collapse.
           </template>
           <template #help>
             This price affects the unlock price and therefore the amount of argons that can be burned out of circulation.
           </template>
         </RuleItem>
 
-        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaulted" isArgon>
+        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaultCapacityPct" isArgon>
           <template #title>BTC Txn Throttle</template>
-          <template #value>{{ addCommas(data[asset].btcMaxTxns) }} per hour</template>
+          <template #value>{{ addCommas(data[asset].btcMaxTxnsPerHour) }} per hour</template>
           <template #editing>
-            A max of<RuleInputText v-model="data[asset].btcMaxTxns" :min="1" :max="24_000" useThousandsSeparator /> bitcoin transactions will be allowed per hour, with only one bitcoin per transaction.
+            A max of<RuleInputText v-model="data[asset].btcMaxTxnsPerHour" :min="1" :max="24_000" useThousandsSeparator /> bitcoin transactions will be allowed per hour, with only one bitcoin per transaction.
           </template>
           <template #help>
             Automation. Automated bots make up a maximum of 3% of volume.
           </template>
         </RuleItem>
 
-        <RuleItem type="recovery" :isDisabled="!data[asset].btcVaulted" isArgon>
-          <template #title>BTC Unvault Bots</template>
-          <template #value>{{ data[asset].unvaultBots }}% of market</template>
-          <template #editing>
-            Automated trading bots control 
-            <RuleInputText v-model="data[asset].unvaultBots" :min="0" :max="100" isNumber />% of the vaulted bitcoins.
-          </template>
-          <template #help>
-            Automation. Automated bots make up a maximum of 3% of volume.
-          </template>
-        </RuleItem>
-
-        <RuleItem type="greed" :isDisabled="!data[asset].btcVaulted" isArgon>
-          <template #title>Unvault Greed</template>
-          <template #value>{{data[asset].unvaultGreedLow}}-{{data[asset].unvaultGreedHigh}}%</template>
-          <template #editing>
-            Bitcoiners will start unlocking when
-            their profit potential is 
-            <RuleInputText v-model="data[asset].unvaultGreedLow" :min="0" :max="100" isNumber />%,
-            and they will reach peak fever when it hits
-            <RuleInputText v-model="data[asset].unvaultGreedHigh" :min="0" :max="100" isNumber />%.
-          </template>
-          <template #help>
-            Covering Shorts. Factors that drive profit-seeking behavior in the market. Bitcoins will unlock from vaults when they expect to profit between 10% and 20%.
-          </template>
-        </RuleItem>
-
-        <RuleItem type="greed" :isDisabled="!data[asset].btcVaulted" isArgon>
+        <RuleItem type="greed" :isDisabled="!data[asset].btcVaultCapacityPct" isArgon>
           <template #title>Unvault Latency</template>
-          <template #value>{{data[asset].unvaultLatencyLow}}-{{data[asset].unvaultLatencyHigh}} hours</template>
+          <template #value>{{data[asset].unvaultLatencyInHours}} hours</template>
           <template #editing>
-            Bitcoiners will procrastinate between
-            <RuleInputText v-model="data[asset].unvaultLatencyLow" :min="0" :max="48" isNumber /> {{ data[asset].unvaultLatencyLow === 1 ? 'hour' : 'hours' }}
-            and 
-            <RuleInputText v-model="data[asset].unvaultLatencyHigh" :min="0" :max="48" isNumber /> {{ data[asset].unvaultLatencyHigh === 1 ? 'hour' : 'hours' }} before unvaulting.
+            Bitcoiners will procrastinate up to
+            <RuleInputText v-model="data[asset].unvaultLatencyInHours" :min="0" :max="48" isNumber /> {{ data[asset].unvaultLatencyInHours === 1 ? 'hour' : 'hours' }} before unvaulting.
           </template>
           <template #help>
             Covering Shorts. Factors that drive profit-seeking behavior in the market. Bitcoins will unlock from vaults when they expect to profit between 10% and 20%.
@@ -296,28 +265,6 @@ dayjs.extend(utc);
 
 const basicStore = useBasicStore();
 const { asset, rules: data } = storeToRefs(basicStore);
-
-let isUpdatingBtcDates = false;
-
-Vue.watch(() => data.value[asset.value].btcLockDateStart, (newValue, oldValue) => {
-  if (!isUpdatingBtcDates && oldValue && newValue !== oldValue) {
-    isUpdatingBtcDates = true;
-    const startDate = dayjs.utc(newValue);
-    const endDate = startDate.add(1, 'year');
-    data.value[asset.value].btcLockDateEnd = endDate.format('YYYY/MM/DD');
-    isUpdatingBtcDates = false;
-  }
-}, { immediate: true });
-
-Vue.watch(() => data.value[asset.value].btcLockDateEnd, (newValue, oldValue) => {
-  if (!isUpdatingBtcDates && oldValue && newValue !== oldValue) {
-    isUpdatingBtcDates = true;
-    const endDate = dayjs.utc(newValue);
-    const startDate = endDate.subtract(1, 'year');
-    data.value[asset.value].btcLockDateStart = startDate.format('YYYY/MM/DD');
-    isUpdatingBtcDates = false;
-  }
-}, { immediate: true });
 </script>
 
 <style scoped lang="scss">

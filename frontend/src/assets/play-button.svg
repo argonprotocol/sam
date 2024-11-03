@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 29 35" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Triangle</title>
+    <g id="SAM" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="SAM-Player" transform="translate(-41, -1061)" fill="#000000">
+            <polygon id="Triangle" transform="translate(55.1334, 1078.378) rotate(-270) translate(-55.1334, -1078.378)" points="55.1334012 1064.37803 72.1334012 1092.37803 38.1334012 1092.37803"></polygon>
+        </g>
+    </g>
+</svg>

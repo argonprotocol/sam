@@ -1,232 +1,352 @@
 <template>
-  <div class="CHART COMPONENT GLOBAL-BOX relative flex flex-col pt-1">
-    <h2 class="text-xl mx-2 font-extralight py-3 pl-2 relative">
-      THE RESULTS
-      <div class="absolute bottom-0 left-0 w-full h-[1px]" style="background: linear-gradient(to right, rgb(203 213 225) 70%, rgba(203, 213, 225, 0) 100%)"></div>
-    </h2>
-    
-    <div class="flex flex-row grow my-2 mr-2">
-      <ul @click="toggleYAxis" class="text-sm text-right text-slate-400 flex flex-col justify-between border-r border-slate-300 pr-2 w-14 ml-1 mb-8 hover:bg-slate-100 cursor-pointer">
-        <li>{{xSymbol}}2.00</li>
-        <li>{{xSymbol}}1.75</li>
-        <li>{{xSymbol}}1.50</li>
-        <li>{{xSymbol}}1.25</li>
-        <li>{{xSymbol}}1.00</li>
-        <li>{{xSymbol}}0.75</li>
-        <li>{{xSymbol}}0.50</li>
-        <li>{{xSymbol}}0.25</li>
-        <li>{{xSymbol}}0.00</li>
-      </ul>
-      <div class="grow flex flex-col">
-        <div class="grow relative">
-          <div class="absolute -top-8 -bottom-4 -left-4 -right-2 z-10">
-            <ApexChart
-              width="100%"
-              height="100%"
-              type="line"
-              :options="chartOptions"
-              :series="chartSeries"
-            ></ApexChart>
-          </div>
+  <div Wrapper class="grow h-full flex flex-col relative top-1.5">
+    <div class="absolute w-full h-full">
+      <slot />
+      <ChartTooltip :config="tooltipConfig" />
+      <ChartMarker direction="left" :config="chartMarkerLeft" />
+      <ChartMarker direction="right" :config="chartMarkerRight" />
+      
+      <!-- <div ShadowSelection v-if="shadowSelector.isActive" class="absolute -top-1 bottom-[73px] cursor-pointer border-[6px] rounded border-[#BCC1D8] z-[60]" :style="`left: ${shadowSelector.left}px; width: ${shadowSelector.width}px`">
+        <div ShadowSelectionBg></div>
+      </div> -->
 
-          <div class="absolute left-0 w-full top-[50%] h-2 mt-[-0.5%] border-b-4 border-dotted border-slate-300 z-0"></div>
-          <div @click="runSimulation('recovery')" v-if="stepStage >= 3" :class="{previousRunning: stepStage === 3, current: stepStage === 4}" :style="`left: ${recoveryLeftPos}%; top: ${recoveryTopPos}%`" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute z-20 border border-slate-400 ml-[2px]">
-            <!-- <RecoveryIcon class="w-full" /> -->
-          </div>
-          <div @click="runSimulation('collapse')" v-if="stepStage >= 1" :class="{previousRunning: stepStage === 1, current: stepStage === 2}" :style="`left: ${collapseLeftPos}%`" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute top-[50%] z-20 border border-slate-400">
-            <!-- <CollapseIcon class="w-full" /> -->
-          </div>
-          <div @click="runSimulation('start')" :class="{current: stepStage === 0}" class="MARKER cursor-pointer rounded-full bg-white shadow-md absolute -left-1.5 top-[50%] z-20 border border-slate-400">
-            <!-- <StartIcon class="w-full" /> -->
-          </div>
-        </div>
-        <div class="X-AXIS h-8 text-sm text-slate-400 border-t border-slate-300">
-          <ul class="flex flex-row justify-around pt-0.5 text-center">
-            <li class="border-l border-slate-300" style="width: 4.7619047619%;">2020</li>
-            <li class="border-l border-slate-300" style="width: 19.0476190476%;">2021</li>
-            <li class="border-l border-slate-300" style="width: 19.0476190476%;">2022</li>
-            <li class="border-l border-slate-300" style="width: 19.0476190476%;">2023</li>
-            <li class="border-l border-slate-300" style="width: 19.0476190476%;">2024</li>
-            <li class="border-l border-r border-slate-300" style="width: 19.0476190476%;">2025</li>
-          </ul>
-        </div>
-      </div>  
-    </div>
-    
-    <div class="relative h-10 overflow-hidden flex flex-row mb-1.5 opacity-50">
-      <div class="absolute left-0 top-0 w-20 h-full z-20" style="background: linear-gradient(to right, rgba(255,255,255,1) 5%, rgba(255,255,255,0) 100%);"></div>
-      <div class="absolute top-[50%] mt-[-3px] left=0 w-full h-2 overflow-hidden flex flex-row">
-        <div v-for="i in 69" :key="i" class="LINK" style="width: 1.0%; margin-right: 0.4225352113%"  :style="i===1 ? 'margin-left: 1.03%' : ''"></div>  
-      </div>
-      <div v-for="i in 70" :key="i" class="BLOCK" style="width: 1%; margin-right: 0.4225352113%" :style="i===1 ? 'margin-left: 0.4225352113%' : ''"></div>
     </div>
 
+    <div ChartWrapper class="grow relative w-full z-10">
+      <canvas id="MyChart" ref="chartRef"></canvas>
+    </div>
+
+    <div v-if="markerPos.show" StartMarker class="MARKER cursor-pointer" :style="`left: ${markerPos.left}px; top: ${markerPos.top}px`"></div>
+
+    <XAxis :phases="xAxisPhases" endingYear="2025" :loadPct="loadPct" :daysToRecover="props.daysToRecover" class="relative mb-4 mx-4 -top-1.5" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import * as Vue from 'vue';
-  import { storeToRefs } from 'pinia';
-  import ApexChart from 'vue3-apexcharts';
-  import dayjs, { type Dayjs } from "dayjs";
-  import utc from "dayjs/plugin/utc";
-  import { createChartOptions } from '../lib/ChartConfig';
-  import { useBasicStore } from '@/stores/basic';
-  import API from '@/lib/API';
+import * as Vue from 'vue';
+import dayjs from 'dayjs';
+import dayjsUtc from 'dayjs/plugin/utc';
+import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, TimeScale, Tooltip, TooltipModel, ChartEvent, InteractionItem } from 'chart.js';
+import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
+import XAxis from '../components/XAxis.vue';
+import ChartTooltip from '../overlays/ChartTooltip.vue';
+import ChartMarker from '../overlays/ChartMarker.vue';
+import { createChartOptions } from '../lib/ChartOptions';
 
-  dayjs.extend(utc);
+dayjs.extend(dayjsUtc);
+Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, TimeScale, Tooltip);
 
-  const stepStage = Vue.ref<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
+const props = defineProps<{ 
+  daysToRecover?: number,
+  xAxisPhases: any[]
+}>();
 
-  const cachedData = {
-    start: [],
-    collapse: [],
-    recovery: [],
+const emit = defineEmits(['dragging'])
+
+const totalDays = dayjs('2025-12-31').diff(dayjs('2020-10-01'), 'day');
+const loadPct = Vue.ref(0);
+
+const markerPos = Vue.ref({ show: false, left: 0, top: 0 });
+
+const chartRef = Vue.ref<HTMLCanvasElement | null>(null);
+let chart: Chart | null = null;
+
+const chartPoints: any[] = [];
+const pointRadius: number[] = [];
+const pointItems: any[] = [];
+
+const dollarPoints: any[] = [];
+const dollarPointRadius: any[] = [];
+
+function toggleDatasetVisibility(index: number, visible: boolean) {
+  const dataset = chart?.data.datasets[index];
+  if (dataset) {
+    dataset.hidden = !visible;
+  }
+  chart?.update();
+}
+
+function clearPoints() {
+  chartPoints.splice(0, chartPoints.length);
+  pointRadius.splice(0, pointRadius.length);
+  chart?.update();
+}
+
+function addPoints(items: { startingDate: string, endingPrice: number, showPointOnChart?: boolean }[]) {
+  const lastIndex = chartPoints.length - 1;
+  if (lastIndex > 0) {
+    pointRadius[lastIndex] = chartPoints[lastIndex].showPointOnChart ? 4 : 0;
+  }
+  
+  for (const item of items) {
+    const date = dayjs.utc(item.startingDate);
+    const price = Math.min(item.endingPrice, 1.00);
+
+    chartPoints.push({ x: date.valueOf(), y: price });
+    pointRadius.push(item.showPointOnChart ? 4 : 0);
+    pointItems.push(item);
+  }
+
+  pointRadius[pointRadius.length - 1] = 4;
+
+  const daysLoaded = chartPoints.length / totalDays;
+  loadPct.value = Math.round(daysLoaded * 100);
+
+  if (!chart) return;
+  chart.update();
+
+  const dataset = chart.data.datasets[0];
+  const datasetData = dataset.data;
+  const currentIndex = datasetData.length - 1;
+
+  const meta = chart?.getDatasetMeta(0);
+  const currentDataPoint = meta?.data[currentIndex];
+
+  markerPos.value.left = currentDataPoint?.x || 0;
+  markerPos.value.top = currentDataPoint?.y || 0;
+
+  return { x: currentDataPoint?.x, y: currentDataPoint?.y };
+}
+
+const tooltipOpened = Vue.ref(false);
+
+function reloadData(items: any[], dollarData?: any[]) {
+  if (!chart) return;
+
+  chartPoints.splice(0, chartPoints.length);
+  pointRadius.splice(0, pointRadius.length);
+  pointItems.splice(0, pointItems.length);
+
+  dollarPoints.splice(0, pointItems.length);
+  dollarPointRadius.splice(0, dollarPointRadius.length);
+
+  const newDollarPoints = dollarData?.map((item: any) => {
+    const date = dayjs.utc(item.startingDate);
+    const price = Math.min(item.endingPrice, 1.00);
+    return { x: date.valueOf(), y: price };
+  }) || [];
+
+  dollarPoints.push(...newDollarPoints);
+  dollarPointRadius.push(...newDollarPoints.map(() => 0));
+  dollarPointRadius[dollarPointRadius.length - 1] = 4;
+
+  addPoints(items);
+  chart.update();
+}
+
+function getItem(index: number) {
+  index = Math.max(0, index);
+  index = Math.min(pointItems.length - 1, index);
+  return pointItems[index];
+}
+
+function getItems(startIndex: number, endIndex: number) {
+  return pointItems.slice(startIndex, endIndex);
+}
+
+function onTooltipFn(tooltip: TooltipModel<any>, closeIfItemMatchesThis?: any) {
+  if (tooltipOpened.value) return;
+  // Hide if no tooltip
+  if (tooltip.opacity === 0 || !tooltip.dataPoints) {
+    tooltipConfig.value.opacity = 0;
+    return;
+  }
+
+  const pointIndex = tooltip.dataPoints[0].dataIndex;
+  const item = pointItems[pointIndex];
+
+  if (closeIfItemMatchesThis === item) {
+    tooltipConfig.value.opacity = 0;
+    return;
+  }
+
+  tooltipConfig.value.item = item;
+
+  // Set caret Position
+  if (tooltip.yAlign) {
+    tooltipConfig.value.class = tooltip.yAlign; // above or below
+  } else {
+    tooltipConfig.value.class = 'no-transform';
+  }
+
+  tooltipConfig.value.opacity = 1;
+  tooltipConfig.value.left = tooltip.caretX;
+  tooltipConfig.value.top = tooltip.caretY;
+}
+
+function onEventFn(chart: Chart, args: any, pluginOptions: any) {
+  const tooltip = chart.tooltip;
+  const event = args.event;
+  if (event.type === 'click') {
+    if (tooltipOpened.value) {
+      tooltipOpened.value = false;
+      const item = tooltipConfig.value.item;
+      const pointIndex = pointItems.findIndex(x => x === item);
+      pointRadius[pointIndex] = item.showPointOnChart ? 4 : 0;
+      onTooltipFn(tooltip as any, item);
+      chart?.update();
+    } else if (tooltip?.opacity) {
+      tooltipOpened.value = true;
+      const pointIndex = tooltip.dataPoints[0].dataIndex;
+      pointRadius[pointIndex] = 4;
+      chart?.update();
+    }
+  }
+  if (event.type === 'mousedown') {
+    startDrag(event);
+  }
+}
+
+const dragMeta = { 
+  isDragging: false,
+  startX: 0 as number,
+  startInteractionItem: null as InteractionItem | null,
+  startEvent: null as any,
+};
+
+function startDrag(event: ChartEvent) {
+  const alteredEvent = { ...event };
+  alteredEvent.x = Math.max(20, alteredEvent.x as number);
+  const interactionItems = chart?.getElementsAtEventForMode(alteredEvent as any, 'index', { intersect: false }, true) || [];
+  
+  dragMeta.isDragging = true;
+  dragMeta.startX = event.x || 0;
+  dragMeta.startInteractionItem = interactionItems[0];
+  dragMeta.startEvent = event;
+
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', stopDrag);
+}
+
+const chartMarkerLeft = Vue.ref({ left: 0, top: 0, opacity: 0, item: {} as any });
+const chartMarkerRight = Vue.ref({ left: 0, top: 0, opacity: 0, item: {} as any });
+
+function onDrag(event: any) {
+  if (!dragMeta.isDragging) return;
+
+  const { startX, startInteractionItem } = dragMeta;
+  const startIndex = startInteractionItem?.index || 0;
+  const alteredEvent = { ...dragMeta.startEvent };
+  alteredEvent.x = Math.max(20, event.x as number);
+  const interactionItems = chart?.getElementsAtEventForMode(alteredEvent, 'index', { intersect: false }, true) || [];
+
+  const endX = Math.max(20, event.x as number);
+  const endInteractionItem = interactionItems[0];
+  const endIndex = endInteractionItem.index;
+  const leftToRight = endX > startX;
+
+  const left = {
+    x: leftToRight ? startInteractionItem?.element.x || 0 : endInteractionItem?.element.x,
+    y: leftToRight ? startInteractionItem?.element.y || 0 : endInteractionItem?.element.y,
+    index: leftToRight ? startIndex : endIndex,
+    item: leftToRight ? pointItems[startIndex] : pointItems[endIndex],
+  };
+  const right = {
+    x: leftToRight ? endInteractionItem?.element.x || 0 : startInteractionItem?.element.x || 0,
+    y: leftToRight ? endInteractionItem?.element.y || 0 : startInteractionItem?.element.y || 0,
+    index: leftToRight ? endIndex : startIndex,
+    item: leftToRight ? pointItems[endIndex] : pointItems[startIndex],
+  }
+
+  chartMarkerLeft.value = {
+    left: left.x,
+    top: left.y,
+    opacity: 1,
+    item: left.item,
   };
 
-  const basicStore = useBasicStore();
-  const { asset, rules } = storeToRefs(basicStore);
 
-  const xSymbol = Vue.ref('');
+  chartMarkerRight.value = {
+    left: right.x,
+    top: right.y,
+    opacity: 1,
+    item: right.item,
+  };
 
-  const chartOptions = Vue.ref(createChartOptions({
-    chartType: 'line',
-    strokeType: 'dashed',
-  }));
+  // Emit the response back to the parent component
+  emit('dragging', { left, right });
+}
 
-  const chartSeries = Vue.ref<any>([
-    {
-      data: [],
-    },
-  ]);
+function stopDrag(event: MouseEvent) {
+  dragMeta.isDragging = false;
+  document.removeEventListener('mousemove', onDrag);
+  document.removeEventListener('mouseup', stopDrag);
+}
 
-  const collapseLeftPos = Vue.ref(-0.65); // to 30%;
-  const recoveryLeftPos = Vue.ref(-0.65); // to 30%;
-  const recoveryTopPos = Vue.ref(50); // to 30%;
+const tooltipConfig = Vue.ref({
+  opacity: 0,
+  class: '',
+  left: 0,
+  top: 0,
+  item: {} as any,
+});
 
-  function toggleYAxis() {
-    xSymbol.value = !xSymbol.value ? '$' : '';
+function startPulsing() {
+  markerPos.value.show = true;
+}
+
+function stopPulsing() {
+  markerPos.value.show = false;
+}
+
+Vue.onMounted(() => {
+  if (chartRef.value) {
+    const chartOptions = createChartOptions(chartPoints, pointRadius, dollarPoints, dollarPointRadius, onTooltipFn, onEventFn);
+    chart = new Chart(chartRef.value, chartOptions as any);
   }
+});
 
-  async function injectIntoGraph(tmpData: any, step: 'start' | 'collapse' | 'recovery', dollarData?: any) {
-    const chartData = [];
-    if (step === 'collapse') {
-      chartData.push(...cachedData.start);
-    }
-    if (step === 'recovery') {
-      chartData.push(...cachedData.start);
-      chartData.push(...cachedData.collapse);
-    }
-    for (const [index, item] of tmpData.entries()) {
-      const pctProgress = index / tmpData.length;
-      chartData.push(item);
-      chartSeries.value = [{ data: [] }, { data: chartData }];
-      if (step === 'start') {
-        collapseLeftPos.value = (30.65 * pctProgress) - 0.65;
-        recoveryLeftPos.value = (30.65 * pctProgress) - 0.65;
-      } else if (step === 'collapse') {
-        recoveryTopPos.value = 100 - (item[1] * 50);
-        recoveryLeftPos.value += 0.05218525766;
-      }
-      if (step === 'start' && chartData.length % 5 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 1));
-      } else if (step === 'collapse') {
-        await new Promise(resolve => setTimeout(resolve, 1));
-      } else if (step === 'recovery' && chartData.length % 20 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 1));
-      }
-    }
-    if (dollarData) {
-      chartSeries.value = [{ data: dollarData }, { data: chartData }];
-    }
-    if (step === 'start') {
-      stepStage.value = 2;
-    } else if (step === 'collapse') {
-      stepStage.value = 4;
-    } else if (step === 'recovery') {
-      stepStage.value = 6;
-    }
+Vue.onBeforeUnmount(() => {
+  if (chart) {
+    chart.destroy();
   }
+});
 
-  function runSimulation(step: 'start' | 'collapse' | 'recovery') {
-    let lastDate = '';
-    let lastPrice = 0;
-
-    if (step === 'start') {
-      stepStage.value = 1;
-    } else if (step === 'collapse') {
-      chartOptions.value.chart.animations.enabled = false;
-      stepStage.value = 3;
-      const lastIndex = cachedData['start'].length - 1;
-      const lastChartItem = cachedData['start'][lastIndex];
-      lastDate = lastChartItem[0];
-      lastPrice = lastChartItem[1];
-    } else if (step === 'recovery') {
-      stepStage.value = 5;
-      const lastIndex = cachedData['collapse'].length - 1;
-      const lastChartItem = cachedData['collapse'][lastIndex];
-      lastDate = lastChartItem[0];
-      lastPrice = lastChartItem[1];
-    }
-    
-    const request = {
-      asset: asset.value,
-      rules: rules.value[asset.value],
-      lastDate: lastDate,
-      lastPrice: lastPrice,
-    };
-    API.getSimulationData(step, request).then(async (data: any) => {
-      cachedData[step] = data.chartMarkers;
-      if (step === 'recovery') {
-        const endingDate = data.chartMarkers[data.chartMarkers.length - 1][0];
-        const dollarResponse = await runDollar(dayjs.utc(endingDate));
-        const dollarData = dollarResponse.dollarMarkers.map((item: any) => [item.date, item.price]);
-        injectIntoGraph(data.chartMarkers, step, dollarData);
-      } else {
-        injectIntoGraph(data.chartMarkers, step);
-      }
-    });
-  }
-
-  async function runDollar(endingDate: Dayjs) {
-    const request = {
-      endingDate,
-      rules: rules.value[asset.value],
-    };
-    return await API.getDollarData(request);
-  }
+defineExpose({ addPoints, reloadData, startPulsing, stopPulsing, clearPoints, getItems, getItem, toggleDatasetVisibility });
 </script>
 
-<style lang="scss">
-.CHART.COMPONENT {
-  .BLOCK {
-    width: 15px;
-    height: 100%;
-    border: 4px solid #979797;
+<style lang="scss" scoped>
+.MARKER {
+  @apply rounded-full bg-[#63298E] absolute z-20 border border-slate-400;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.MARKER {
+  pointer-events: none;
+
+  &:before, &:after {
+    content: "";
+    display: block;
+    position: absolute;
+    border: 2px solid #63298E;
+    left: -20px;
+    right: -20px;
+    top: -20px;
+    bottom: -20px;
+    border-radius: 50%;
+    animation: animate 1.5s linear infinite;
+    backface-visibility: hidden;
   }
-  .LINK {
-    height: 8px;
-    background: #979797;
-    border-top: 2px solid #F9FAFD;
-    border-bottom: 2px solid #F9FAFD;
+
+  &:after {
+    animation-delay: 0.5s;
   }
-  .MARKER {
-    width: 14px;
-    height: 14px;
-    margin-top: -7px;
-    &.current {
-      svg {
-        opacity: 1;
-      }
-    }
-    &.prevousRunning {
-      svg {
-        opacity: 0;
-      }
-    }
-    svg {
-      opacity: 0.3;
-    }
+}
+
+@keyframes animate {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
   }
 }
 </style>

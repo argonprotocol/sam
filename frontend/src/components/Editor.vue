@@ -13,7 +13,6 @@
                 <div class="flex flex-row">
                   <DialogTitle as="h3" class="text-xl font-semibold leading-6 text-gray-900 whitespace-nowrap">{{ title }}</DialogTitle>
                   <div class="grow"></div>
-                  
                 </div>
 
                 <div class="mt-3 text-left sm:mt-5">

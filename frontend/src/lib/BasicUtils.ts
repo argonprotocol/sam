@@ -68,6 +68,15 @@ function countDecimals(num: number | string) {
   }
 }
 
+export function formatPrice(price: number, decimals?: number) {
+  if (!price) return '0.00';
+  if (price < 0.10 && price.toFixed(3).charAt(4) !== '0') {
+    return price.toFixed(decimals || 3);
+  } else  {
+    return price.toFixed(decimals || 2);
+  }
+}
+
 export function addCommasToFloat(str: string, decimals = 2) {
   const arr = str.split('.');
   const int = arr[0];
@@ -82,8 +91,8 @@ export function addCommasToFloat(str: string, decimals = 2) {
   );
 }
 
-export function currency(num: string | number) {
-  return addCommas(Number(num).toFixed(2));
+export function currency(num: string | number, decimals = 2) {
+  return addCommas(Number(num).toFixed(decimals));
 }
 
 export function isInt(n: any) {
@@ -91,46 +100,53 @@ export function isInt(n: any) {
   return n % 1 === 0;
 }
 
-export function formatShorthandNumber(value: number | string) {
+export function formatAsBillions(value: number | string) {
+  const ONE_BILLION = 1_000_000_000;
+  const TEN_MILLION = 10_000_000;
+  const ONE_MILLION = 1_000_000;
+  value = Number(value);
+
+  if (value <= 0) return '0'
+  if (value >= TEN_MILLION) {
+    return `${addCommas(value / ONE_BILLION, 2)}B`;
+  } else if (value >= ONE_MILLION) {
+    return `${(value / ONE_BILLION).toFixed(3)}B`;
+  } else {
+    return value.toExponential(2);
+  }
+}
+
+export function formatShorthandNumber(value: number | string, optionsOverride: { mantissa?: number, optionalMantissa?: boolean } = {}) {
   if (value === '--') {
     return value;
   }
+
   return numbro(value).format({
     average: true,
     mantissa: 1,
     optionalMantissa: true,
+    ...optionsOverride,
   }).toUpperCase();
 }
 
-/////////////////////////////////////////////////////////////
 
-export function calculateWageProtection(payment, cpi) {
-  return payment + (payment * cpi);
-}
+export function formatChangePct(pct: number) {
+  if (pct === 0 || Math.abs(pct) === 100) return pct;
 
-export function calculateTaxes(payment, currentCPI) {
-  const taxRate = currentCPI >= 0.1 ? 0.3 : 0.2 + currentCPI;
-  return payment * taxRate;
-}
+  let formatted = Math.round(pct * 100); // Initially round to whole number
+  if (formatted !== 0 && Math.abs(formatted) !== 100) return formatted;
 
-export function fetchArgonCPI(currentArgons, targetArgons) {
-  // for this model, lets pretend dollar is stable
-  const currentUsCpi = US_CPI_AT_START;
-
-  // TODO: We need to add an eight block delay to the argon burn to account for the time it takes for the
-  // transaction to be mined. This is a hack to get around the fact that we're not pulling from a live
-  //  currency exchange.
-  // https://www.investopedia.com/terms/q/quantitytheoryofmoney.asp
-
-
-  // According to the Quantity Theory of Money, supply and demand must be matched. Therefore if one knows the
-  // exchange rate of the dollar-to-x then one can presume to back that into an Argon CPI.
-
-  // since we're not pulling from a live currency exchange, we'll back into the exchange rate by using the
-  // Quantity Theory of Money, which says that the total price of a group of assets is equal to the total capital
-  // chasing it.
-  const usDollarToArgonExchangeRate = (currentArgons - (currentArgons - targetArgons)) / currentArgons;
-  return ((currentUsCpi / US_CPI_AT_START) - 1) + ((1 / usDollarToArgonExchangeRate) - 1);
+  let decimals = 0;
+  while (true) {
+    formatted = Math.round(pct * Math.pow(10, decimals + 2)) / Math.pow(10, decimals);
+    if (formatted !== 0 && Math.abs(formatted) !== 100) {
+      return formatted;
+    }
+    decimals++;
+    if (decimals > 10) {
+      return  Math.round(pct * 100); // Prevent infinite loop
+    }
+  }
 }
 
 //////////////////////////////////
@@ -181,22 +197,4 @@ export function printRow(blockCount, lastBlock, currentBlock, argonsBurned, targ
       exchangeRate: 1 / currentArgonsForDollar,
     }
   }
-
-  // console.log(
-  //   `DAY ${day}, BLOCK ${(blockCount % AVG_BLOCKS_PER_DAY)}`.padEnd(18),
-  //   ' :  ',
-  //   `${addCommas(Math.round(lastCPI * 10000) / 10000)}`.padEnd(10),
-  //   ' -> ',
-  //   `${addCommas(Math.round(currentCPI * 10000) / 10000)}`.padEnd(10),
-  //   ' :  ',
-  //   `${addCommas(Math.round(argonsBurned))}`.padEnd(15),
-  //   ' :  ',
-  //   `${addCommas(Math.round(lastArgons))}`.padEnd(17),
-  //   ' -> ',
-  //   `${addCommas(Math.round(currentArgons))}`.padEnd(17),
-  //   ' :  ',
-  //   `${addCommas(Math.round(lastArgonsForDollar * 10) / 10)}`.padEnd(13),
-  //   ' -> ',
-  //   `${addCommas(Math.round(currentArgonsForDollar * 10) / 10)}`.padEnd(13),
-  // );
 }

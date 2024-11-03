@@ -1,6 +1,7 @@
 import runStart from './endpoints/runStart';
-import runCollapse from './endpoints/runCollapse';
-import runRecovery from './endpoints/runRecovery';
+import runCollapseThenRecover from './endpoints/runCollapseThenRecover';
+import runCollapsedForever from './endpoints/runCollapsedForever';
+import runCollapsingRecovery from './endpoints/runCollapsingRecovery';
 import runDollar from './endpoints/runDollar';
 import run from './endpoints/run';
 
@@ -35,13 +36,18 @@ const server = Bun.serve({
       return Response.json(data, CORS_HEADERS);
     }
 
-    if (path === '/run/collapse') {
-      const data = await runCollapse(req);
+    if (path === '/run/collapseThenRecover') {
+      const data = await runCollapseThenRecover(req);
       return Response.json(data, CORS_HEADERS);
     }
 
-    if (path === '/run/recovery') {
-      const data = await runRecovery(req);
+    if (path === '/run/collapsedForever') {
+      const data = await runCollapsedForever(req);
+      return Response.json(data, CORS_HEADERS);
+    }
+
+    if (path === '/run/collapsingRecovery') {
+      const data = await runCollapsingRecovery(req);
       return Response.json(data, CORS_HEADERS);
     }
 
@@ -49,7 +55,7 @@ const server = Bun.serve({
       const data = await runDollar(req);
       return Response.json(data, CORS_HEADERS);
     }
-
+    
     // Default response for undefined paths
     return new Response('Not Found', { status: 404, ...CORS_HEADERS });
   }

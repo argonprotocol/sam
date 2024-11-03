@@ -6,6 +6,7 @@
     "command-line-args": "^5.2.1",
     "csv-parse": "^4.15.4",
     "dayjs": "^1.11.13",
+    "decimal.js": "^10.4.3",
     "eventemitter3": "^5.0.0",
     "socket.io": "^4.2.0",
     "tslib": "^2.7.0"

@@ -2,7 +2,6 @@ import path from 'path';
 import dayjs, { type Dayjs } from "dayjs";
 import loadCsvFile from './loadCsvFile';
 import BitcoinPriceRecord from '../interfaces/BitcoinPriceRecord';
-import { formatDateAsYYYYMMDD } from './Utils';
 
 const allBitcoinPrices = loadCsvFile(path.join(__dirname, '../data-input/bitcoin_prices.csv')).map((x: any) => {
   x.price = Number(x.price);

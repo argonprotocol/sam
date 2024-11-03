@@ -1,5 +1,6 @@
 export default interface IRules {
   circulation: number;
+  startDateOfTerraCollapse: string;
 
   dollarInflation: number;
 
@@ -8,18 +9,12 @@ export default interface IRules {
   micropaymentsAnnually: number;
 
   enableBitcoinVaulting: boolean;
-  btcVaulted: number;
-  btcLockDateStart: string;
-  btcLockDateEnd: string;
-  btcRatcheting: number;
-  btcRatchetingAt: number;
-  btcPrice: number;
-  unvaultBots: number;
-  btcMaxTxns: number;
-  unvaultGreedLow: number;
-  unvaultGreedHigh: number;
-  unvaultLatencyLow: number;
-  unvaultLatencyHigh: number;
+  btcVaultCapacityPct: number;
+  btcRatchetingPct: number;
+  btcRatchetWhenPriceChangePct: number;
+  btcPriceOverride: number;
+  btcMaxTxnsPerHour: number;
+  unvaultLatencyInHours: number;
 
   enableCertaintyGreed: boolean;
   certaintyGreedLow: number;
@@ -35,7 +30,4 @@ export default interface IRules {
   speculativeLatencyLow: number;
   speculativeLatencyHigh: number;
   speculativeMaxDailyIncrease: number;
-
-  disableRecoveryDuringFall: boolean;
-  enableReservePurchasingPower: number;
 }

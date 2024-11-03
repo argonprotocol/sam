@@ -2,56 +2,80 @@ import dayjs, { type Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import IRules from "../interfaces/IRules";
-import BlockchainRunner, { MILLIS_PER_HOUR } from "../lib/BlockchainRunner";
+import BlockchainRunner, { TERRA_LAUNCH_DATE, TERRA_COLLAPSE_DATE, DEFAULT_ENDING_DATE } from "../lib/BlockchainRunner";
 import DollarInflation from "../lib/DollarInflation";
+import { IVaultMeta } from '../lib/Vault';
 
 dayjs.extend(utc);
 dayjs.extend(isSameOrBefore);
-const TERRA_LAUNCH_DATE = '2020-10-01T00:00:00Z';
-const TERRA_POOL_DEPEG_DATE = '2022-05-09T00:00:00Z';
 
-export default class StartController {
-  
+export default class StartController {  
   public async start(rules: IRules) {    
+    const startingPrice = 1.00;
+    const startOnDate = dayjs.utc(TERRA_LAUNCH_DATE);
+    const endBeforeDate = dayjs.utc(rules.startDateOfTerraCollapse);
     const runner = new BlockchainRunner(rules);
-    const startingDate = dayjs.utc(TERRA_LAUNCH_DATE);
-    const endingDate = dayjs.utc(TERRA_POOL_DEPEG_DATE);
-    const price = 1.00;
     
-    runner.runStart(startingDate, endingDate, price);
+    console.log('RUNNING START');
+    runner.runStart(startingPrice, startOnDate, endBeforeDate);
 
     return runner.dailyMarkers.map(m => m.toJson())
   }
 
-  public async collapse(rules: IRules, lastDateStr: string, lastPrice: number) {
-    const runner = new BlockchainRunner(rules);
-    const startingDate = dayjs.utc(lastDateStr).add(1, 'day').startOf('day');
+  public async collapseThenRecover(rules: IRules, startingVaultMeta: IVaultMeta) {
+    const startingPrice = 1.00;
+    const startingDate = dayjs.utc(TERRA_COLLAPSE_DATE)
 
-    if (rules.enableReservePurchasingPower) {
-      runner.runTerraCollapse(startingDate, lastPrice);
-    } else {
-      runner.runTerralikeCollapse(startingDate, lastPrice);
-    }
+    const runner1 = new BlockchainRunner(rules);
+    runner1.runCollapse(startingPrice, startingDate, startingVaultMeta);
+ 
+    const lastMarker = runner1.dailyMarkers[runner1.dailyMarkers.length - 1];        
+    const { currentPrice, nextDate: currentDate, currentCirculation, endingVaultMeta: lastVaultMeta } = lastMarker;
+
+    const runner2 = new BlockchainRunner(rules);
+    console.log('currentCirculation', currentCirculation);
+    runner2.runRecovery(currentPrice, currentDate, currentCirculation, lastVaultMeta);
+    
+    return {
+      collapse: runner1.dailyMarkers.map(m => m.toJson()),
+      recover: runner2.dailyMarkers.map(m => m.toJson()),
+    };
+  }
+
+  public async collapsedForever(rules: IRules, startingVaultMeta: IVaultMeta) {
+    const startingPrice = 1.00;
+    const startingDate = dayjs.utc(TERRA_COLLAPSE_DATE);
+
+    const runner1 = new BlockchainRunner(rules);
+    runner1.runCollapse(startingPrice, startingDate, startingVaultMeta);
+ 
+    const lastMarker = runner1.dailyMarkers[runner1.dailyMarkers.length - 1];
+    const runner2 = new BlockchainRunner(rules);
+    runner2.runCollapsedForever(lastMarker.nextDate, lastMarker.currentCirculation, lastMarker.currentCapital, lastMarker.endingVaultMeta);
+
+    return [
+      ...runner1.dailyMarkers.map(m => m.toJson()),
+      ...runner2.dailyMarkers.map(m => m.toJson())
+    ];
+  }
+
+  public async collapsingRecovery(rules: IRules, startingVaultMeta: IVaultMeta) {
+    const startingPrice = 1.00;
+    const startingDate = dayjs.utc(TERRA_COLLAPSE_DATE);
+
+    const runner = new BlockchainRunner(rules);
+    runner.runCollapsingRecovery(startingPrice, startingDate, startingVaultMeta);
  
     return runner.dailyMarkers.map(m => m.toJson());
   }
 
-  public async recovery(rules: IRules, lastDateStr: string, lastPrice: number) {
-    const runner = new BlockchainRunner(rules);
-    const startingDate = dayjs.utc(lastDateStr).add(1, 'day').startOf('day');
-    
-    runner.runRecovery(startingDate, lastPrice);
-    
-    return runner.dailyMarkers.map(m => m.toJson());
-  }
-
-  public async dollar(endingDateString: string, rules: IRules) {
-    const endingDate = dayjs.utc(endingDateString);
+  public async dollar(endingDateStr: string, rules: IRules) {
+    const endingDate = dayjs.utc(endingDateStr || DEFAULT_ENDING_DATE);
     const dollarMarkers: any[] = [];
     const dollarInflation = new DollarInflation(rules);
 
+    let currentPrice = 1.00;
     let currentDate = dayjs.utc(TERRA_LAUNCH_DATE);
-    let currentPrice = 1.0;
     
     while (currentDate.isSameOrBefore(endingDate)) {
       const year = currentDate.year().toString();

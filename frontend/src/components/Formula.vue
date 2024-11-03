@@ -1,13 +1,6 @@
 <template>
   <div v-if="isLoaded" class="FORMULA COMPONENT relative flex flex-col pt-1">
-    <div FormulaGrid class="grow mt-10 relative flex flex-col">
-      <div class="text-md text-slate-400 text-center opacity-70 uppercase">
-        <span :FadeWhenDragging="isDragging" class="relative ml-6">
-          <div IndependentArrowLeft @click="moveToPreviousPriceChange()" :class="selected.index ? '' : 'opacity-30 pointer-events-none'"></div>
-          Snapshot for {{ selected.startingDate.format('MMMM D, YYYY') }}
-          <div IndependentArrowRight v-if="selected.index < markers.length - 1" @click="moveToNextPriceChange()" class=""></div>
-        </span>
-      </div>
+    <div FormulaGrid class="grow mt-20 relative flex flex-col">
       <div class="flex flex-row h-full max-h-[600px] mx-[4%] mt-2">
         <div FormulaGridColumn1 :FadeWhenDragging="isDragging" class="col-start-1 flex flex-col pr-2 w-[28.8%]">
           <div SubBox @click="openEditor('speculativeGreed')" class="h-[23%]">
@@ -242,7 +235,7 @@
   import dayjs from 'dayjs';
   import utc from 'dayjs/plugin/utc';
   import ApexChart from 'vue3-apexcharts';
-  import { createChartOptions } from '../lib/ChartConfig';
+  import { createChartOptions } from '../lib/ChartOptions';
   import { useBasicStore } from '../stores/basic';
   import { addCommas, formatShorthandNumber } from '../lib/BasicUtils';
   import API from '../lib/API';

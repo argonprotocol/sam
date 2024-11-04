@@ -3,12 +3,16 @@ import BlockchainRunner, { TERRA_COLLAPSE_DATE, TERRA_LAUNCH_DATE } from '../lib
 import dayjs from 'dayjs';
 import rules from './helpers/rules';
 import Marker from '../lib/Marker';
+import { IVaultMeta } from '../lib/Vault';
 
-const vaultMetaBeforeRecovery = {
-  bitcoinCount: 254314.93824018317,
-  lockPricePerBitcoin: 36702.5907271112,
-  unlockPricePerBitcoin: 33123.6107271112,
-  unlockBurnPerBitcoinDollar: 1,
+const vaultMetaBeforeRecovery: IVaultMeta = {
+  bitcoinCount: 200_000,
+  dollarsPerBitcoinLock: 30_000,
+  dollarsPerBitcoinUnlock: 30_000,
+  argonsBurnedPerBitcoinDollar: 1,
+  argonBurnCapacity: 6_000_000_000,
+  profitsToDate: 0,
+  argonRatioPrice: 1.00,
 }
 
 test("test collapse forever", () => {

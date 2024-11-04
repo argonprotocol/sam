@@ -10,9 +10,9 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import Header from '../components/Header.vue';
-import Tour from '../panels/Tour.vue';
-import Runner from '../panels/Runner.vue';
-import Base from '../panels/Base.vue';
+import Tour from '../view-panels/Tour.vue';
+import Runner from '../view-panels/Runner.vue';
+import Base from '../view-panels/Base.vue';
 import { useBasicStore } from '../stores/basic';
 
 const basicStore = useBasicStore();

@@ -61,10 +61,9 @@ function addPoints(items: any[]) {
     let value = 0;
 
     if (id === 'bitcoinCoverage') {
-      const vaultMeta = item.endingVaultMeta;
-      value = vaultMeta.bitcoinCount * vaultMeta.unlockPricePerBitcoin * vaultMeta.unlockBurnPerBitcoinDollar;
+      value = item.endingVaultMeta.argonBurnCapacity;
     } else if (id === 'bitcoinProfits') {
-      // value = item.endingVaultMeta.bitcoinCount * item.endingVaultMeta.unlockPricePerBitcoin * item.endingVaultMeta.unlockBurnPerBitcoinDollar;
+      // 
     } else if (id === 'argonRelativeToDollar') {
       value = item.step.dollarDiffPct;
     } else if (id === 'argonLosses') {

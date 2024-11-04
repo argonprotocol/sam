@@ -37,32 +37,6 @@ export default class BlockchainRunner {
     this.config = config;
   }
 
-  public generateDailyMarkers() {
-    const dailyMarkers = [];
-    let markersToMerge = [];
-    let dayToMerge = this.hourlyMarkers[0].startingDate;
-
-    Marker.idCount = 0;
-    for (const hourlyMarker of this.hourlyMarkers) {
-      if (!dayToMerge.isSame(hourlyMarker.startingDate, 'day')) {
-        dayToMerge = hourlyMarker.startingDate;
-        const mergedDailyMarker = Marker.merge(markersToMerge);
-        dailyMarkers.push(mergedDailyMarker);
-        markersToMerge = [];
-      }
-      
-      markersToMerge.push(hourlyMarker);
-    }
-
-    // Handle the last day
-    if (markersToMerge.length > 0) {
-      const mergedDailyMarker = Marker.merge(markersToMerge);
-      dailyMarkers.push(mergedDailyMarker);
-    }
-
-    return dailyMarkers;
-  }
-
   public runStart(startingPrice: number, startOnDate: Dayjs, endBeforeDate: Dayjs) {
     const durationInHours = 24;
     const lengthInDays = endBeforeDate.diff(startOnDate, 'days');

@@ -9,7 +9,6 @@
       </div>
       <div class="absolute h-full left-0 right-0 bottom-0 z-0">
         <ChartBg />
-        <Chart :chartSeries="[]" :disabled="true" />
       </div>
     </div>
     <WelcomeOverlay v-if="tourStep === 0" />
@@ -23,7 +22,6 @@ import { storeToRefs } from 'pinia';
   import WelcomeOverlay from '../overlays/WelcomeOverlay.vue';
   import WelcomeStepOne from '../overlays/WelcomeStepOne.vue';
   import WelcomeStepTwo from '../overlays/WelcomeStepTwo.vue';
-  import Chart from '../components/Chart.vue';
   import { useBasicStore } from '../stores/basic';
   import ChartBg from '../components/ChartBg.vue';
 

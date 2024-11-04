@@ -4,10 +4,13 @@ import dayjs from 'dayjs';
 import rules from './helpers/rules';
 
 const vaultMetaBeforeRecovery = {
-  bitcoinCount: 254314.93823991003,
-  lockPricePerBitcoin: 36702.5907271,
-  unlockPricePerBitcoin: 33123.6107271,
-  unlockBurnPerBitcoinDollar: 1,
+  argonBurnCapacity: 8469444408.260929,
+  argonRatioPrice: 1,
+  argonsBurnedPerBitcoinDollar: 1,
+  bitcoinCount: 248500.44666296375,
+  dollarsPerBitcoinLock: 37625.6868974,
+  dollarsPerBitcoinUnlock: 34082.21,
+  profitsToDate: 34445702220.317726,
 }
 
 test("test collapsing recovery", () => {

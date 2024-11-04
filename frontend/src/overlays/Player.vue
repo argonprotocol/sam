@@ -12,69 +12,69 @@
               
               <div ref="scoreboardRef" class="flex flex-row mx-1 items-stretch space-x-2 text-slate-500 font-light">
                 
-                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-2 pt-1 px-3">
+                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
                   <h4 class="font-bold py-2 opacity-80">Bitcoin Tokens</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
                     
-                    <div :class="{'bg-lime-100': item.step.burnCoverage > item.previous.step.burnCoverage, 'bg-red-100': item.step.burnCoverage < item.previous.step.burnCoverage}" class="relative w-1/2 pb-1 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinCoverage" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'bg-green-100': item.step.burnCoverage > item.previous.step.burnCoverage, 'bg-red-100': item.step.burnCoverage < item.previous.step.burnCoverage}" class="relative w-1/2 pb-2 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinCoverage" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       ₳{{ formatAsBillions(item.step.burnCoverage) }}
-                      <div>Burn Coverage</div>
-                      <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div>Burn Capacity</div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
                     
-                    <div class="relative w-1/2 pb-1 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
-                      ${{ formatAsBillions(item.endingVaultMeta.bitcoinCount) }}
+                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                      ${{ formatAsBillions(item.endingVaultMeta.profitsToDate) }}
                       <div>Vaulting Profits</div>
-                      <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
 
                   </div>
                 </div>
 
-                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-2 pt-1 px-3">
+                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
                   <h4 class="font-bold py-2 opacity-80">Argon Tokens</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
-                    <div class="relative w-1/2 pb-1 cursor-pointer hover:text-lime-700" insightId="argonRelativeToDollar" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-lime-700" insightId="argonRelativeToDollar" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       {{ item.step.dollarDiffPct > 0 ? '+' : '' }}{{ item.step.dollarDiffPct }}%
-                    <div>Relative to Dollar</div>
-                    <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div>Relative to Dollar</div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
-                    <div class="relative w-1/2 pb-1 cursor-pointer hover:text-red-700" insightId="argonLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
-                      -${{ formatAsBillions(item.annualMicropayments) }}
+                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-red-700" insightId="argonLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                      ${{ formatAsBillions(item.step.argonLossDueToFear) }}
                       <div>Losses Due to Fear</div>
-                      <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
                   </div>
                 </div>
 
-                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-2 pt-1 px-3">
+                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
                   <h4 class="font-bold py-2 opacity-80">Ownership Tokens</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
-                    <div class="relative w-1/2 pb-1 cursor-pointer hover:text-lime-700" insightId="seigniorageProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-lime-700" insightId="seigniorageProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       ${{ formatAsBillions(step.seigniorageProfits) }}
                       <div>Seigniorage Profits</div>
-                      <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
-                    <div class="relative w-1/2 pb-1 cursor-pointer hover:text-red-700" insightId="seigniorageLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-red-700" insightId="seigniorageLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       $0
                       <div>Seigniorage Losses</div>
-                      <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
                   </div>
                 </div>
 
-                <div class="w-1/4 relative flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-2 pt-1 px-3">
+                <div class="w-1/4 relative flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
                   <h4 class="font-bold py-2 opacity-80">Transactional Usage</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
-                    <div class="relative w-1/2 pb-1 cursor-pointer hover:text-blue-700" insightId="p2pTransactions" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="p2pTransactions" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       {{ formatAsBillions(step.seigniorageProfits) }}
                       <div>Peer-to-Peer Txns</div>
-                      <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
-                    <div class="relative w-1/2 pb-1 cursor-pointer hover:text-blue-700" insightId="micropaymentArr" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="micropaymentArr" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       $0
                       <div>Micropayment ARR</div>
-                      <div VerticalLineWithTopFade class="absolute -bottom-10 left-1/2 h-8 -translate-x-1/2"></div>
+                      <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
                   </div>
                 </div>
@@ -595,34 +595,38 @@ emitter.on('openPlayer', (payload: any) => {
   lastItem.value = items.value[items.value.length - 1];
   
   let accumulatedSeigniorage = 0;
-
+  let accumulatedArgonLoss = 0;
+  
   for (const item of items.value) {
     const seigniorageProfits: number[] = Object.values(item.seigniorageMap as any);
     const addedSeigniorageProfits = seigniorageProfits.reduce((acc: number, curr: number) => acc + curr, 0);
     
     maxSupplyDemand.value = Math.max(maxSupplyDemand.value, item.startingCirculation, item.endingCirculation, item.startingCapital, item.endingCapital);
     accumulatedSeigniorage += addedSeigniorageProfits;
-    
-    item.step = createStep(item, accumulatedSeigniorage);
+    accumulatedArgonLoss += item.argonLossDueToFear;
+
+    item.step = createStep(item, accumulatedSeigniorage, accumulatedArgonLoss);
   }
 
   const previousItem = items.value[0].previous;
-  previousItem.step = createStep(previousItem, 0);
+  previousItem.step = createStep(previousItem, 0, 0);
 
   const nextItem = items.value[items.value.length - 1].next;
-  nextItem.step = createStep(nextItem, 0);
+  nextItem.step = createStep(nextItem, 0, 0);
 
   selectItem(0);
 });
 
-function createStep(item: any, accumulatedSeigniorage: number) {
+function createStep(item: any, accumulatedSeigniorage: number, accumulatedArgonLoss: number) {
   const dollarDiffPct = formatChangePct((item.endingPrice - item.dollar.endingPrice) / item.dollar.endingPrice);
-  const burnCoverage = item.endingVaultMeta.bitcoinCount * item.endingVaultMeta.unlockPricePerBitcoin * item.endingVaultMeta.unlockBurnPerBitcoinDollar;
+  const burnCoverage = item.endingVaultMeta.argonBurnCapacity;
+  
   return {
       burnCoverage: burnCoverage,
       bitcoinsVaulted: Math.max(0, item.endingVaultMeta.bitcoinCount - item.startingVaultMeta.bitcoinCount),
       bitcoinsUnlocked: Math.max(0, item.startingVaultMeta.bitcoinCount - item.endingVaultMeta.bitcoinCount),
       seigniorageProfits: accumulatedSeigniorage,
+      argonLossDueToFear: accumulatedArgonLoss,
       currentCirculation: item.endingCirculation,
       currentPrice: item.endingCapital / item.endingCirculation,
       dollarDiffPct: dollarDiffPct,

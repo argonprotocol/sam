@@ -18,7 +18,7 @@
 
     <div v-if="markerPos.show" StartMarker class="MARKER cursor-pointer" :style="`left: ${markerPos.left}px; top: ${markerPos.top}px`"></div>
 
-    <XAxis :phases="xAxisPhases" endingYear="2025" :loadPct="loadPct" :daysToRecover="props.daysToRecover" class="relative mb-4 mx-4 -top-1.5" />
+    <XAxis :phases="xAxisPhases" endingYear="2025" :loadPct="loadPct" class="relative mb-4 mx-4 -top-1.5" />
   </div>
 </template>
 
@@ -37,7 +37,6 @@ dayjs.extend(dayjsUtc);
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, TimeScale, Tooltip);
 
 const props = defineProps<{ 
-  daysToRecover?: number,
   xAxisPhases: any[]
 }>();
 

@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col w-full">
     <ChartBg />
-    <Chart ref="chartRef" :daysToRecover="daysToRecover">
+    <Chart ref="chartRef" :xAxisPhases="xAxisPhases">
       <div StatusText v-if="statusText" :style="`left: ${statusTextPos.left}px; top: ${statusTextPos.top}px`" class="absolute z-20 font-bold text-slate-400 text-2xl">{{statusText}}</div>
     </Chart>
     <TerraCollapseOverlay v-if="showTerraCollapseOverlay" @close="loadCollapseData" />
@@ -29,6 +29,16 @@ const daysToRecover = Vue.ref(0);
 const statusOptions = {
   1: ['STARTING MODEL...', 'INITIALIZING BLOCKCHAIN NETWORK...', 'LOADING BITCOIN PRICES...', "MODELING TERRA'S HISTORY..."],
 }
+
+const xAxisPhases = Vue.ref([
+  {
+    id: 'running',
+    label: "Running Terra's Historical Data Against the Argon",
+    startingDate: '2020-10-01',
+    endingDate: '2025-12-31',
+    bgColor: '#AAB0B7',
+  }
+]);
 
 const showTerraCollapseOverlay = Vue.ref(false);
 const showActivatingRecoveryOverlay = Vue.ref(false);

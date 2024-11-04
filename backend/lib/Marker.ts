@@ -317,7 +317,7 @@ export default class Marker {
      */
     const maxIncreasePerMarker = divide(rules.speculativeMaxDailyIncrease, 24) * this.durationInHours;
     const yesterdaysMarker = cappedMarkers[cappedMarkers.length - (this.durationInHours === 24 ? 1 : 24)];
-    const excessCirculation = this.calculateExcessSupply(this.currentCirculation);
+    const excessCirculation = Marker.calculateExcessSupply(this.currentCirculation, this.currentCapital);
 
     if (averageProfitPotential >= rules.speculativeGreedHigh) {
       const capitalToAdd = Math.min(maxIncreasePerMarker * yesterdaysMarker.currentCapital, excessCirculation);
@@ -380,7 +380,7 @@ export default class Marker {
      */
     const maxIncreasePerMarker = divide(rules.certaintyMaxDailyIncrease, 24) * this.durationInHours;
     const yesterdaysMarker = cappedMarkers[cappedMarkers.length - (this.durationInHours === 24 ? 1 : 24)];
-    const excessCirculation = this.calculateExcessSupply(this.currentCirculation);
+    const excessCirculation = Marker.calculateExcessSupply(this.currentCirculation, this.currentCapital);
 
     if (averageProfitPotential >= rules.certaintyGreedHigh) {
       const capitalToAdd = Math.min(maxIncreasePerMarker * yesterdaysMarker.currentCapital, excessCirculation);
@@ -393,15 +393,16 @@ export default class Marker {
 
   public runBitcoinFusion(rules: IRules, vault: Vault) {
     vault.setDate(this.startingDate);
-    const excessCirculation = this.calculateExcessSupply(this.currentCirculation);
+    const excessCirculation = Marker.calculateExcessSupply(this.currentCirculation, this.currentCapital);
     if (excessCirculation <= 0) return;
 
-    const unlockBurnPerBitcoinDollar = vault.calculateUnlockBurnPerBitcoinDollar(this.lowestPrice);
-    const bitcoinsToUnvault = this.throttleBitcoinsToUnvault(divide(excessCirculation, (unlockBurnPerBitcoinDollar * vault.pricePerBtc), 20), vault, rules);
-    if (!bitcoinsToUnvault) return;
+    const unlockBurnPerBitcoinDollar = Vault.calculateUnlockBurnPerBitcoinDollar(this.lowestPrice);
+    const bitcoinsToUnvault = divide(excessCirculation, (unlockBurnPerBitcoinDollar * vault.dollarsPerBitcoinUnlock), 20);
+    const throttledBitcoinsToUnvault = this.throttleBitcoinsToUnvault(bitcoinsToUnvault, vault, rules);
+    if (!throttledBitcoinsToUnvault) return;
 
-    vault.unvault(bitcoinsToUnvault);
-    this.removeCirculation(bitcoinsToUnvault * (unlockBurnPerBitcoinDollar * vault.pricePerBtc), 'BitcoinFusion');
+    vault.unvaultBitcoins(throttledBitcoinsToUnvault, this.currentPrice);
+    this.removeCirculation(throttledBitcoinsToUnvault * (unlockBurnPerBitcoinDollar * vault.dollarsPerBitcoinUnlock), 'BitcoinFusion');
   }
 
   private throttleBitcoinsToUnvault(bitcoinsToUnvault: number, vault: Vault, rules: IRules) {
@@ -410,8 +411,8 @@ export default class Marker {
     const maximumUnlockValue = divide(this.currentCirculation, 2);
     const maximumBitcoinCount = divide(maximumUnlockValue, currentUnlockValuePerBtc);
 
-    const unlockBurnPerDollarAtHalfPrice = vault.calculateUnlockBurnPerBitcoinDollar(this.currentPrice / 2);
-    const bitcoinsNeededAtHalfPrice = divide(this.currentCirculation, (unlockBurnPerDollarAtHalfPrice * vault.pricePerBtc), 20);
+    const unlockBurnPerDollarAtHalfPrice = Vault.calculateUnlockBurnPerBitcoinDollar(this.currentPrice / 2);
+    const bitcoinsNeededAtHalfPrice = divide(this.currentCirculation, (unlockBurnPerDollarAtHalfPrice * vault.dollarsPerBitcoinUnlock), 20);
     
     const bitcoinsClearToUse = vault.bitcoinCount - bitcoinsNeededAtHalfPrice;
     const bitcoinsDesiredClear = maximumBitcoinCount - bitcoinsNeededAtHalfPrice;
@@ -419,7 +420,7 @@ export default class Marker {
     if (this.currentPrice < 0.98) {
       const latencyFactor = Math.min(divide(bitcoinsClearToUse, bitcoinsDesiredClear), 1);
       const hoursToFinishUnlocking = (rules.unvaultLatencyInHours - (rules.unvaultLatencyInHours * latencyFactor)) || 1;
-      const bitcoinsToUnvaultPerHour = divide(Math.min(bitcoinsToUnvault, vault.bitcoinCount), hoursToFinishUnlocking);
+      const bitcoinsToUnvaultPerHour = divide(Math.min(bitcoinsToUnvault, vault.bitcoinCount), hoursToFinishUnlocking, 20);
       bitcoinsToUnvault = bitcoinsToUnvaultPerHour * (Math.min(hoursToFinishUnlocking, this.durationInHours));
     }
 
@@ -450,6 +451,12 @@ export default class Marker {
   }
 
   public toJson(): IJson {
+    let argonLoss = 0;
+    if (this.currentPrice < this.startingPrice) {
+      const circulation = Math.max(this.startingCirculation, this.currentCirculation);
+      const priceDiff = this.startingPrice - this.currentPrice;
+      argonLoss = priceDiff * circulation;
+    }
     return {
       id: this.id,
       blockCount: this.blockCount,
@@ -477,6 +484,7 @@ export default class Marker {
       seigniorageMap: this.seigniorageMap,
       annualTransactions: this.annualTransactions,
       annualMicropayments: this.annualMicropayments,
+      argonLossDueToFear: argonLoss < 0 ? 0 : argonLoss,
       disabledMechanisms: this.disabledMechanisms,
     };
   }
@@ -495,8 +503,8 @@ export default class Marker {
     return divide(currentCapitalDemand, currentCirculationSupply);
   }
 
-  public calculateExcessSupply(circulation: number): number {
-    return circulation - this.currentCapital;
+  private static calculateExcessSupply(circulation: number, capital: number): number {
+    return circulation - capital;
   }
 
   public static calculateProfitReturn(startingPrice: number, endingPrice: number): number {
@@ -633,6 +641,7 @@ interface IJson {
   seigniorageMap: { [key: string]: number };
   annualTransactions: number;
   annualMicropayments: number;
+  argonLossDueToFear: number;
   disabledMechanisms: IDisabledMechanisms;
 }
 

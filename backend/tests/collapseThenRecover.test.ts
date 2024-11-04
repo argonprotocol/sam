@@ -5,10 +5,14 @@ import rules from './helpers/rules';
 import IRules from '../interfaces/IRules';
 
 const vaultMetaBeforeRecovery = {
-  bitcoinCount: 254314.93823991003,
-  lockPricePerBitcoin: 36765.4376291,
-  unlockPricePerBitcoin: 33186.4576291,
-  unlockBurnPerBitcoinDollar: 1,
+  argonBurnCapacity: 645_664_424_0.317682,
+  argonRatioPrice: 1,
+  argonsBurnedPerBitcoinDollar: 1,
+  bitcoinCount: 198_423.6610318361,
+  dollarsPerBitcoinLock: 35_788.661922,
+  dollarsPerBitcoinUnlock: 32_539.6891013,
+  profitsToDate: 700_794_416.2318723,
+  bitcoinMintedArgons: 9_350_000_000.000013,
 }
 
 test("test start", () => {
@@ -72,7 +76,8 @@ test("test recovery without bitcoin", () => {
   const runner = new BlockchainRunner(customRules, { bypassCache: true });
   const dailyMarkers = runner.runRecovery(startingPrice, startingDate, startingCirculation, vaultMetaBeforeRecovery, stopDate);
   const lastMarker = dailyMarkers[dailyMarkers.length - 1];
+  const yearsToRecover = lastMarker.nextDate.diff(startingDate, 'years');
 
-  expect(lastMarker.startingPrice).toBe(1.00);
   expect(lastMarker.currentPrice).toBe(1.00);
+  expect(yearsToRecover).toBe(84);
 });

@@ -347,7 +347,7 @@ function xAxisUpdate(newSelectedFilter: IFilterName) {
         bgColor: ['#F36F6F', '#93CD61'],
       }, {
         id: 'recovered',
-        label: 'Recovered and Stable',
+        label: 'Stabilized and Recovering',
         startingDate: '2022-07-20',
         endingDate: '2025-12-31',
         bgColor: '#93CD61'
@@ -362,7 +362,7 @@ function xAxisUpdate(newSelectedFilter: IFilterName) {
         bgColor: ['#F36F6F', '#93CD61'],
       }, {
         id: 'recovered',
-        label: 'Recovered and Stable',
+        label: 'Stabilized and Recovering',
         startingDate: '2022-07-20',
         endingDate: '2025-12-31',
         bgColor: '#93CD61'

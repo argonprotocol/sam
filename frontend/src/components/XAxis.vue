@@ -4,9 +4,19 @@
       <li v-if="unitType === 'year'" class="border-slate-300" :style="`min-width: ${unitWidth}%`">&nbsp; 2020 &nbsp;</li>
       <li v-for="length in lengths" :key="length" class="border-l border-slate-300" :style="`width: ${lengthWidth}%`">{{ length }}</li>
     </ul>
-    <ul Phases class="flex flex-row pt-0.5 text-center whitespace-nowrap space-x-1">
-      <li SegmentBg v-for="phase in phases" @mouseenter="phaseMouseEnter(phase, $event)" @mouseleave="phaseMouseLeave(phase, $event)" :style="{ background: phase.bgColorGradient, width: `${phase.durationPct * 100}%` }" class="py-1 uppercase cursor-pointer text-white">{{phase.label}}</li>
-    </ul>
+    <div class="relative text-center whitespace-nowrap">
+      <ul Phases class="flex flex-row pt-0.5 space-x-1 relative z-1">
+        <li SegmentBg v-for="phase in phases" :isLoading="loadPct < 100" @mouseenter="phaseMouseEnter(phase, $event)" @mouseleave="phaseMouseLeave(phase, $event)" :style="{ width: `${phase.durationPct * 100}%` }" class="relative uppercase text-white py-1">
+          <span class="relative z-1">{{phase.label}}</span>
+          <div :style="{ background: phase.bgColorGradient, opacity: loadPct < 100 ? 0.5 : 1 }" class="absolute top-0 left-0 w-full h-full z-0"></div>
+        </li>
+      </ul>
+      <ul Phases v-if="loadPct < 100" :style="`width: ${loadPct}%; mask-image: linear-gradient(to left, transparent 0px, black 30px)`" class="absolute top-0.5 bottom-0 left-0 flex flex-row pt-0.5 space-x-1 z-0 py-1 overflow-hidden">
+        <li v-for="phase in phases" :style="{ background: phase.bgColorGradient, width: `${phase.durationPct * 100}%` }" class="h-full">
+          <div :style="{ background: phase.bgColorGradient }" class="absolute top-0 left-0 w-full h-full"></div>
+        </li>
+      </ul>
+    </div>
     <SegmentOverlay :config="phaseOverlayConfig" class="absolute z-[1000]" />
   </div>
 </template>
@@ -31,10 +41,10 @@ const props = defineProps<{
   }[];
   endingYear: string;
   loadPct: number;
-  daysToRecover?: number;
 }>();
 
 const phases: Vue.Ref<any[]> = Vue.ref([]);
+const loadPct = Vue.ref(props.loadPct);
 
 const phaseOverlayConfig = Vue.ref({
   left: 1000,
@@ -44,7 +54,7 @@ const phaseOverlayConfig = Vue.ref({
 });
 
 function phaseMouseEnter(phase: any, event: MouseEvent) {
-  if (!phases.value.length) return;
+  if (!phases.value.length || loadPct.value < 100) return;
   const currentTarget = event.currentTarget as HTMLElement;
   const rect = currentTarget.getBoundingClientRect();
   phaseOverlayConfig.value.left = rect.left + (rect.width / 2) - 16;
@@ -104,37 +114,13 @@ if (years.length >= 9) {
 const unitWidth = 100 / units
 const lengthWidth = unitType === 'year' ? unitWidth * 4 : unitWidth;
 
-const phase1Width = unitType === 'year' ? unitWidth * 7 : unitWidth * 0.2;
-const phase2Width = 100 - phase1Width;
-
-const replicateLabel = Vue.ref("Replicate Terra's Launch and Collapse");
-const attemptLabel = Vue.ref('Attempt to Recover from Collapse');
-
 const cssVars = Vue.computed(() => {
-  const loadPct = props.loadPct / 100;
-  const phase1Ratio = phase1Width / 100;
-  const phase2Ratio = phase2Width / 100;
-
-  let loadPct1 = Math.min(loadPct / phase1Ratio, 1) * 105;
-  let loadPct2 = Math.max((loadPct - phase1Ratio) / phase2Ratio, 0) * 105;
-
-  if (loadPct1 >= 105) {
-    replicateLabel.value = "Replicated Terra's Launch and Collapse";
-  } else if (loadPct1 > 0) {
-    replicateLabel.value = "Replicating Terra's Launch and Collapse";
-  }
-
-  if (props.daysToRecover) {
-    attemptLabel.value = `Recovered Within ${props.daysToRecover} Days`;
-  } else if (loadPct2 > 0) {
-    attemptLabel.value = "Attempting to Recover from Terra's Collapse";
-  }
+  loadPct.value = props.loadPct;
+  const loadDec = (props.loadPct / 100) * 105;
 
   return {
-    '--load-pct1-start': `${Math.max(loadPct1 === 0 ? 0 : loadPct1 - 5, 0)}%`,
-    '--load-pct1-end': `${Math.min(loadPct1 === 0 ? 0 : loadPct1 + 5, 100)}%`,
-    '--load-pct2-start': `${Math.max(loadPct2 === 0 ? 0 : loadPct2 - 5, 0)}%`,
-    '--load-pct2-end': `${Math.min(loadPct2 === 0 ? 0 : loadPct2 + 5, 100)}%`,
+    '--load-pct-start': `${Math.max(loadDec === 0 ? 0 : loadDec - 5, 0)}%`,
+    '--load-pct-end': `${Math.min(loadDec === 0 ? 0 : loadDec + 5, 100)}%`,
   };
 });
 
@@ -147,7 +133,13 @@ const cssVars = Vue.computed(() => {
   }
 
   [SegmentBg]:hover {
+    cursor: pointer;
     box-shadow: 1px 1px 0 0 rgba(16, 20, 24, 0.7);
+  }
+
+  [SegmentBg][isLoading]:hover {
+    cursor: default;
+    box-shadow: none;
   }
 }
 </style>

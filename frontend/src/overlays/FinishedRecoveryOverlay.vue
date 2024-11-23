@@ -10,10 +10,10 @@
           <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" enter-to="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200" leave-from="opacity-100 translate-y-0 sm:scale-100" leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
             <DialogPanel class="absolute top-[32.5%] transform flex flex-col overflow-scroll rounded-lg bg-white px-5 pb-4 pt-5 text-left shadow-xl transition-all w-full max-w-xl">
               <div class="grow">
-                <DialogTitle as="h3" class="text-xl font-semibold leading-6 text-gray-900 whitespace-nowrap px-3">It Took {{props.daysToRecover}} {{ props.daysToRecover === 1 ? 'Day' : 'Days' }} to Recovery!</DialogTitle>
+                <DialogTitle as="h3" class="text-xl font-semibold leading-6 text-gray-900 whitespace-nowrap px-3">It Took {{ props.daysToRecover < 7 ? 'Less Than a' : props.daysToRecover }} {{ props.daysToRecover < 7 ? 'Week' : 'Days' }} to Recovery!</DialogTitle>
 
                 <div class="mt-3 text-left sm:mt-5 border-y border-gray-200 py-4 text-sm text-gray-500 space-y-3 px-3">
-                  <p>Less than {{daysToRecover}} days have elapsed since Argon's stabilization mechanisms were reactivated. Its price has now recovered to its original value, plus any additional value required to match the rise of inflation.</p>
+                  <p>Less than {{ props.daysToRecover < 7 ? 'a' : props.daysToRecover }} {{ props.daysToRecover < 7 ? 'week has' : 'days have' }} elapsed since Argon's stabilization mechanisms were reactivated. Its price has now recovered to its original value, plus any additional value required to match the rise of inflation.</p>
 
                   <p>We will now finish loading the model so you can begin exploring the data.</p>
                 </div>

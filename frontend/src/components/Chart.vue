@@ -6,9 +6,9 @@
       <ChartMarker direction="left" :config="chartMarkerLeft" />
       <ChartMarker direction="right" :config="chartMarkerRight" />
       
-      <!-- <div ShadowSelection v-if="shadowSelector.isActive" class="absolute -top-1 bottom-[73px] cursor-pointer border-[6px] rounded border-[#BCC1D8] z-[60]" :style="`left: ${shadowSelector.left}px; width: ${shadowSelector.width}px`">
+      <div ShadowSelection v-if="shadowSelector.isActive" class="absolute -top-[10px] bottom-[79px] cursor-pointer border-[6px] rounded border-[#BCC1D8] z-[60]" :style="`left: ${shadowSelector.left}px; width: ${shadowSelector.width}px`">
         <div ShadowSelectionBg></div>
-      </div> -->
+      </div>
 
     </div>
 
@@ -18,7 +18,7 @@
 
     <div v-if="markerPos.show" StartMarker class="MARKER cursor-pointer" :style="`left: ${markerPos.left}px; top: ${markerPos.top}px`"></div>
 
-    <XAxis :phases="xAxisPhases" endingYear="2025" :loadPct="loadPct" class="relative mb-4 mx-4 -top-1.5" />
+    <XAxis :phases="xAxisPhases" @phaseenter="onPhaseEnter" @phaseleave="onPhaseLeave" endingYear="2025" :loadPct="loadPct" class="relative mb-4 mx-4 -top-1.5" />
   </div>
 </template>
 
@@ -37,10 +37,23 @@ dayjs.extend(dayjsUtc);
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, TimeScale, Tooltip);
 
 const props = defineProps<{ 
-  xAxisPhases: any[]
+  xAxisPhases: any[],
+  isRunning?: boolean,
 }>();
 
 const emit = defineEmits(['dragging'])
+
+const shadowSelector = Vue.ref({ isActive: false, left: 0, width: 0 });
+
+function onPhaseEnter(event: any) {
+  shadowSelector.value.isActive = true;
+  shadowSelector.value.left = event.left;
+  shadowSelector.value.width = event.width;
+}
+
+function onPhaseLeave(event: any) {
+  shadowSelector.value.isActive = false;
+}
 
 const totalDays = dayjs('2025-12-31').diff(dayjs('2020-10-01'), 'day');
 const loadPct = Vue.ref(0);
@@ -104,6 +117,12 @@ function addPoints(items: { startingDate: string, endingPrice: number, showPoint
   markerPos.value.left = currentDataPoint?.x || 0;
   markerPos.value.top = currentDataPoint?.y || 0;
 
+  // Trigger tooltip on the latest point
+  if (props.isRunning && currentDataPoint && pointItems.length > 10) {
+    chart.tooltip.setActiveElements([{ datasetIndex: 0, index: currentIndex }], { x: currentDataPoint.x, y: currentDataPoint.y });
+    chart.update();
+  }
+
   return { x: currentDataPoint?.x, y: currentDataPoint?.y };
 }
 
@@ -116,7 +135,7 @@ function reloadData(items: any[], dollarData?: any[]) {
   pointRadius.splice(0, pointRadius.length);
   pointItems.splice(0, pointItems.length);
 
-  dollarPoints.splice(0, pointItems.length);
+  dollarPoints.splice(0, dollarPoints.length);
   dollarPointRadius.splice(0, dollarPointRadius.length);
 
   const newDollarPoints = dollarData?.map((item: any) => {
@@ -254,7 +273,6 @@ function onDrag(event: any) {
     item: left.item,
   };
 
-
   chartMarkerRight.value = {
     left: right.x,
     top: right.y,
@@ -311,6 +329,10 @@ defineExpose({ addPoints, reloadData, startPulsing, stopPulsing, clearPoints, ge
   height: 10px;
   transform: translate(-50%, -50%);
   pointer-events: none;
+}
+
+[ShadowSelection] {
+  box-shadow: 1px 1px 1px 0 rgb(0 0 0), inset 1px 1px 1px 0 rgb(0 0 0);
 }
 
 .MARKER {

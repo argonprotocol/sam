@@ -40,7 +40,7 @@
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
                     <div class="relative w-1/2 pb-2 cursor-pointer hover:text-red-700" insightId="argonLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
-                      ${{ formatAsBillions(item.step.argonLossDueToFear) }}
+                      ${{ formatAsBillions(item.argonLossDueToFear) }}
                       <div>Losses Due to Fear</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
@@ -51,7 +51,7 @@
                   <h4 class="font-bold py-2 opacity-80">Ownership Tokens</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
                     <div class="relative w-1/2 pb-2 cursor-pointer hover:text-lime-700" insightId="seigniorageProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
-                      ${{ formatAsBillions(step.seigniorageProfits) }}
+                      ${{ formatAsBillions(item.seigniorageProfits) }}
                       <div>Seigniorage Profits</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
@@ -67,12 +67,12 @@
                   <h4 class="font-bold py-2 opacity-80">Transactional Usage</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
                     <div class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="p2pTransactions" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
-                      {{ formatAsBillions(step.seigniorageProfits) }}
+                      {{ formatAsBillions(item.annualTransactions) }}
                       <div>Peer-to-Peer Txns</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
                     <div class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="micropaymentArr" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
-                      $0
+                      ${{ formatAsBillions(item.annualMicropayments) }}
                       <div>Micropayment ARR</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
@@ -402,8 +402,8 @@ function showInsight(event: MouseEvent) {
     data.micropaymentsChange = item.value.annualMicropayments - previousItem.annualMicropayments;
     data.annualMicropayments = item.value.annualMicropayments;
   } else if (id === 'seigniorage') {
-    data.seigniorageChange = item.value.step.seigniorageProfits - previousItem.step.seigniorageProfits;
-    data.seigniorageProfits = item.value.step.seigniorageProfits;
+    data.seigniorageChange = item.value.seigniorageProfits - previousItem.seigniorageProfits;
+    data.seigniorageProfits = item.value.seigniorageProfits;
   } else if (id === 'price') {
     data.startingPrice = item.value.startingPrice;
     data.lowestPrice = item.value.lowestPrice;
@@ -594,30 +594,21 @@ emitter.on('openPlayer', (payload: any) => {
   firstItem.value = items.value[0];
   lastItem.value = items.value[items.value.length - 1];
   
-  let accumulatedSeigniorage = 0;
-  let accumulatedArgonLoss = 0;
-  
   for (const item of items.value) {
-    const seigniorageProfits: number[] = Object.values(item.seigniorageMap as any);
-    const addedSeigniorageProfits = seigniorageProfits.reduce((acc: number, curr: number) => acc + curr, 0);
-    
     maxSupplyDemand.value = Math.max(maxSupplyDemand.value, item.startingCirculation, item.endingCirculation, item.startingCapital, item.endingCapital);
-    accumulatedSeigniorage += addedSeigniorageProfits;
-    accumulatedArgonLoss += item.argonLossDueToFear;
-
-    item.step = createStep(item, accumulatedSeigniorage, accumulatedArgonLoss);
+    item.step = createStep(item);
   }
 
   const previousItem = items.value[0].previous;
-  previousItem.step = createStep(previousItem, 0, 0);
+  previousItem.step = createStep(previousItem);
 
   const nextItem = items.value[items.value.length - 1].next;
-  nextItem.step = createStep(nextItem, 0, 0);
+  nextItem.step = createStep(nextItem);
 
   selectItem(0);
 });
 
-function createStep(item: any, accumulatedSeigniorage: number, accumulatedArgonLoss: number) {
+function createStep(item: any) {
   const dollarDiffPct = formatChangePct((item.endingPrice - item.dollar.endingPrice) / item.dollar.endingPrice);
   const burnCoverage = item.endingVaultMeta.argonBurnCapacity;
   
@@ -625,8 +616,6 @@ function createStep(item: any, accumulatedSeigniorage: number, accumulatedArgonL
       burnCoverage: burnCoverage,
       bitcoinsVaulted: Math.max(0, item.endingVaultMeta.bitcoinCount - item.startingVaultMeta.bitcoinCount),
       bitcoinsUnlocked: Math.max(0, item.startingVaultMeta.bitcoinCount - item.endingVaultMeta.bitcoinCount),
-      seigniorageProfits: accumulatedSeigniorage,
-      argonLossDueToFear: accumulatedArgonLoss,
       currentCirculation: item.endingCirculation,
       currentPrice: item.endingCapital / item.endingCirculation,
       dollarDiffPct: dollarDiffPct,

@@ -6,12 +6,12 @@
     </ul>
     <div class="relative text-center whitespace-nowrap">
       <ul Phases class="flex flex-row pt-0.5 space-x-1 relative z-1">
-        <li SegmentBg v-for="phase in phases" :isLoading="loadPct < 100" @mouseenter="phaseMouseEnter(phase, $event)" @mouseleave="phaseMouseLeave(phase, $event)" :style="{ width: `${phase.durationPct * 100}%` }" class="relative uppercase text-white py-1">
+        <li SegmentBg v-for="phase in phases" :isLoading="phases.length === 1" @mouseenter="phaseMouseEnter(phase, $event)" @mouseleave="phaseMouseLeave(phase, $event)" :style="{ width: `${phase.durationPct * 100}%` }" class="relative uppercase text-white py-1">
           <span class="relative z-1">{{phase.label}}</span>
           <div :style="{ background: phase.bgColorGradient, opacity: loadPct < 100 ? 0.5 : 1 }" class="absolute top-0 left-0 w-full h-full z-0"></div>
         </li>
       </ul>
-      <ul Phases v-if="loadPct < 100" :style="`width: ${loadPct}%; mask-image: linear-gradient(to left, transparent 0px, black 30px)`" class="absolute top-0.5 bottom-0 left-0 flex flex-row pt-0.5 space-x-1 z-0 py-1 overflow-hidden">
+      <ul Phases v-if="phases.length === 1" :style="`width: ${loadPct}%; mask-image: linear-gradient(to left, transparent 0px, black 30px)`" class="absolute top-0.5 bottom-0 left-0 flex flex-row pt-0.5 space-x-1 z-0 py-1 overflow-hidden">
         <li v-for="phase in phases" :style="{ background: phase.bgColorGradient, width: `${phase.durationPct * 100}%` }" class="h-full">
           <div :style="{ background: phase.bgColorGradient }" class="absolute top-0 left-0 w-full h-full"></div>
         </li>
@@ -35,13 +35,21 @@ const props = defineProps<{
       type: String,
       required: false,
     },
-    startingDate: string;
-    endingDate: string;
+    firstItem: {
+      type: Object,
+      required: true,
+    },
+    lastItem: {
+      type: Object,
+      required: true,
+    },
     bgColor: string | string[];
   }[];
   endingYear: string;
   loadPct: number;
 }>();
+
+const emit = defineEmits(['phaseenter', 'phaseleave']);
 
 const phases: Vue.Ref<any[]> = Vue.ref([]);
 const loadPct = Vue.ref(props.loadPct);
@@ -54,28 +62,36 @@ const phaseOverlayConfig = Vue.ref({
 });
 
 function phaseMouseEnter(phase: any, event: MouseEvent) {
-  if (!phases.value.length || loadPct.value < 100) return;
+  if (phases.value.length === 1 || loadPct.value < 100) return;
+
   const currentTarget = event.currentTarget as HTMLElement;
   const rect = currentTarget.getBoundingClientRect();
-  phaseOverlayConfig.value.left = rect.left + (rect.width / 2) - 16;
-  phaseOverlayConfig.value.opacity = 1;
-  phaseOverlayConfig.value.phase = phase;
+  // phaseOverlayConfig.value.left = rect.left + (rect.width / 2) - 16;
+  // phaseOverlayConfig.value.opacity = 1;
+  // phaseOverlayConfig.value.phase = phase;
+  emit('phaseenter', { left: rect.left, width: rect.width, phase });
 }
 
 function phaseMouseLeave(phase: any, event: MouseEvent) {
-  phaseOverlayConfig.value.opacity = 0;
+  // phaseOverlayConfig.value.opacity = 0;
+  emit('phaseleave');
 }
 
 Vue.watch(() => props.phases, () => {
   if (!props.phases.length) return;
 
-  const firstStartingDate = dayjs.utc(props.phases[0].startingDate);
-  const lastEndingDate = dayjs.utc(props.phases[props.phases.length - 1].endingDate);
-  const totalDuration = lastEndingDate.diff(firstStartingDate, 'days');
+  const veryFirstItem: any = props.phases[0].firstItem;
+  const veryLastItem: any = props.phases[props.phases.length - 1].lastItem;
+  
+  const firstDate = dayjs.utc(veryFirstItem.startingDate);
+  const lastDate = dayjs.utc(veryLastItem.startingDate);
+  const totalDuration = lastDate.diff(firstDate, 'days');
 
   phases.value = props.phases.map(s => {
-    const startingDate = dayjs.utc(s.startingDate);
-    const endingDate = dayjs.utc(s.endingDate);
+    const firstItem: any = s.firstItem;
+    const lastItem: any = s.lastItem;
+    const startingDate = dayjs.utc(firstItem.startingDate);
+    const endingDate = dayjs.utc(lastItem.startingDate);
     const durationPct = endingDate.diff(startingDate, 'days') / totalDuration;
     const bgColor = Array.isArray(s.bgColor) ? s.bgColor : [s.bgColor, s.bgColor];
     const bgColorGradient = `linear-gradient(to right, ${bgColor[0]} 0%, ${bgColor[1]} 100%)`;
@@ -132,14 +148,18 @@ const cssVars = Vue.computed(() => {
     border-left: none;
   }
 
-  [SegmentBg]:hover {
+  [SegmentBg] {
     cursor: pointer;
-    box-shadow: 1px 1px 0 0 rgba(16, 20, 24, 0.7);
+    &:hover {
+      box-shadow: 1px 1px 0 0 rgba(16, 20, 24, 0.7);
+    }
   }
 
-  [SegmentBg][isLoading]:hover {
+  [SegmentBg][isLoading="true"] {
     cursor: default;
-    box-shadow: none;
+    &:hover {
+      box-shadow: none;
+    }
   }
 }
 </style>

@@ -12,7 +12,9 @@ const compressedStorage = CompressedStorage(window.sessionStorage);
 export const useBasicStore = defineStore('help', () => {
   const selectedPanel: Vue.Ref<IPanelName> = Vue.ref(compressedStorage.getItem('selectedPanel') as IPanelName || 'tour');
   const selectedFilter: Vue.Ref<IFilterName> = Vue.ref(compressedStorage.getItem('selectedFilter') as IFilterName || 'collapseThenRecover');
+  
   const rules: Vue.Ref<IRules> = Vue.ref({ ...baseRules });
+  
   const simulationData: Vue.Ref<any> = Vue.ref({
     start: getSimulationDataFromLocalStorage('start'),
     collapseThenRecover: getSimulationDataFromLocalStorage('collapseThenRecover'),

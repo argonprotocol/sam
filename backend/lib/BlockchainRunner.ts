@@ -161,9 +161,104 @@ export default class BlockchainRunner {
     return this.dailyMarkers;
   }
 
+  public runCollapsingRecovery(startingPrice: number, startingDate: Dayjs, vaultMeta: IVaultMeta) {
+    const vault = new Vault('cached', startingDate);
+    vault.loadFromCache(vaultMeta);
+    vault.setPricePerBtcOverride(this.rules.btcPriceOverride);
+
+    const afterTerra = this.implementTerraCollapse(startingPrice, startingDate, vault, (marker) => {
+      marker.runRecovery(this.rules, this.dailyMarkers, vault);
+      marker.manageSeigniorageProfits(this.rules, this.reserve);
+
+      this.dailyMarkers.push(marker);
+    });
+
+    const durationInHours = afterTerra.durationInHours;
+
+    let currentDate = afterTerra.currentDate;
+    let currentCirculation = afterTerra.currentCirculation;
+    let currentCapital = afterTerra.currentCapital;
+    let daysFlatlined = 0;
+
+    while (daysFlatlined < 20 && currentDate.isBefore(dayjs.utc(MUST_END_BEFORE_DATE))) {
+      const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
+
+      marker.setAnnualTransactions(this.rules.transactionsAnnually);
+      marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
+
+      marker.runRecovery(this.rules, this.dailyMarkers, vault);
+      marker.setReserve(this.rules, this.reserve);
+      marker.manageSeigniorageProfits(this.rules, this.reserve);
+      marker.runDisabledMechanisms(this.rules, false);
+
+      this.dailyMarkers.push(marker);
+
+      currentDate = marker.nextDate;
+      currentCirculation = marker.currentCirculation;
+      currentCapital = marker.currentCapital;
+
+      if (marker.startingCapital >= 1.00 && marker.currentPrice >= 1.00) {
+        daysFlatlined++;
+      } else {
+        daysFlatlined = 0;
+      }
+    }
+
+    return this.dailyMarkers;
+  }
+
+  public runRecovery(startingPrice: number, startingDate: Dayjs, currentCirculation: number, vaultMeta: IVaultMeta): Marker[] {
+    const durationInHours = 24;
+    const maxRecentMarkers = Math.max(Math.round(this.rules.speculativeLatencyHigh/24), Math.round(this.rules.certaintyLatencyHigh/24));
+
+    let currentDate = startingDate;
+    let currentCapital = Marker.calculateCapitalFromCirculationAndPrice(currentCirculation, startingPrice);
+    let daysFlatlined = 0;
+
+    const vault = new Vault('cached', currentDate);
+    vault.loadFromCache(vaultMeta);
+    vault.setPricePerBtcOverride(this.rules.btcPriceOverride);
+
+    let recentMarkers: Marker[] = [];
+  
+    while (daysFlatlined < 20 && currentDate.isBefore(dayjs.utc(MUST_END_BEFORE_DATE))) {
+      const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
+
+      marker.setAnnualTransactions(this.rules.transactionsAnnually);
+      marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
+
+      marker.setReserve(this.rules, this.reserve);
+      marker.runRecovery(this.rules, recentMarkers, vault);
+      marker.manageSeigniorageProfits(this.rules, this.reserve);
+      marker.runDisabledMechanisms(this.rules, false);
+      
+      recentMarkers = [...recentMarkers.slice(-maxRecentMarkers), marker];
+      this.dailyMarkers.push(marker);
+
+      currentDate = marker.nextDate;
+      currentCirculation = marker.currentCirculation;
+      currentCapital = marker.currentCapital;
+
+      const isAfterDesiredDate = currentDate.isAfter(dayjs.utc(DEFAULT_ENDING_DATE));
+      if (isAfterDesiredDate && marker.currentPrice <= this.dailyMarkers[this.dailyMarkers.length - 20].startingPrice) {
+        log(`Recovery stopped at ${currentDate} because there is no hope of recovery`);
+        break;
+      }
+
+      if (marker.startingCapital >= 1.00 && marker.currentPrice >= 1.00) {
+        daysFlatlined++;
+      } else {
+        daysFlatlined = 0;
+      }
+    }
+
+    return this.dailyMarkers;
+  }
+
   public runCollapsedForever(currentDate: Dayjs, currentCirculation: number, currentCapital: number, vaultMeta: IVaultMeta) {
     const durationInHours = 24;
-    const endingDate = dayjs.utc(DEFAULT_ENDING_DATE);
+    const defaultEndingDate = dayjs.utc(DEFAULT_ENDING_DATE);
+    const endingDate = currentDate.isBefore(defaultEndingDate) ? defaultEndingDate : currentDate.endOf('year');
     
     const vault = new Vault('cached', currentDate);
     vault.loadFromCache(vaultMeta);
@@ -185,25 +280,18 @@ export default class BlockchainRunner {
     return this.dailyMarkers;
   }
 
-  public runCollapsingRecovery(startingPrice: number, startingDate: Dayjs, vaultMeta: IVaultMeta) {
-    const vault = new Vault('cached', startingDate);
+  public runRegrowth(startingPrice: number, currentDate: Dayjs, currentCirculation: number, vaultMeta: IVaultMeta, finalStopDate?: Dayjs): Marker[] {
+    const durationInHours = 24;
+    const defaultEndingDate = dayjs.utc(DEFAULT_ENDING_DATE);
+    const endingDate = currentDate.isBefore(defaultEndingDate) ? defaultEndingDate : currentDate.endOf('year');
+
+    const vault = new Vault('cached', currentDate);
     vault.loadFromCache(vaultMeta);
     vault.setPricePerBtcOverride(this.rules.btcPriceOverride);
 
-    const afterTerra = this.implementTerraCollapse(startingPrice, startingDate, vault, (marker) => {
-      marker.runRecovery(this.rules, this.dailyMarkers, vault);
-      marker.manageSeigniorageProfits(this.rules, this.reserve);
+    let currentCapital = Marker.calculateCapitalFromCirculationAndPrice(currentCirculation, startingPrice);
 
-      this.dailyMarkers.push(marker);
-    });
-
-    const durationInHours = afterTerra.durationInHours;
-
-    let currentDate = afterTerra.currentDate;
-    let currentCirculation = afterTerra.currentCirculation;
-    let currentCapital = afterTerra.currentCapital;
-
-    while (currentDate.isBefore(dayjs.utc(DEFAULT_ENDING_DATE))) {
+    while (currentDate.isSameOrBefore(endingDate)) {
       const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
 
       marker.setAnnualTransactions(this.rules.transactionsAnnually);
@@ -224,100 +312,32 @@ export default class BlockchainRunner {
     return this.dailyMarkers;
   }
 
-  public runRecovery(startingPrice: number, startingDate: Dayjs, currentCirculation: number, vaultMeta: IVaultMeta, finalStopDate?: Dayjs): Marker[] {
-    const durationInHours = 24;
+  public fetchFromCached(filePath: string) {
+    // const pauseDate = currentDate.add(1, 'year');
+    // const rulesKey = JSON.stringify(this.rules);
+    // const rulesHash = require('crypto').createHash('md5').update(rulesKey).digest('hex');
+    // const filePath = Path.join(__dirname, `../data-cache/recovery-${rulesHash}-${pauseDate.unix()}.json`);
 
-    let currentDate = startingDate;
-    let currentCapital = Marker.calculateCapitalFromCirculationAndPrice(currentCirculation, startingPrice);
 
-    const vault = new Vault('cached', currentDate);
-    vault.loadFromCache(vaultMeta);
-    vault.setPricePerBtcOverride(this.rules.btcPriceOverride);
 
-    while (true) {
-      const stopDate = currentDate.add(1, 'year');
-      const rulesKey = JSON.stringify(this.rules);
-      const rulesHash = require('crypto').createHash('md5').update(rulesKey).digest('hex');
-      const filePath = Path.join(__dirname, `../data-cache/recovery-${rulesHash}-${stopDate.unix()}.json`);
-      const maxRecentMarkers = Math.max(Math.round(this.rules.speculativeLatencyHigh/24), Math.round(this.rules.certaintyLatencyHigh/24));
+    // if (false && !this.config.bypassCache && Fs.existsSync(filePath)) {
+    //   log(`Reading cached recovery data from ${filePath}`);
+    //   const fileContent = Fs.readFileSync(filePath, 'utf8');
+    //   const parsedData = JSON.parse(fileContent);
+    //   this.hourlyMarkers = parsedData.map(markerData => {
+    //     return Marker.fromJsonCache(markerData);
+    //   });
+    //   const lastMarker = this.hourlyMarkers[this.hourlyMarkers.length - 1];
+    //   currentDate = dayjs.utc(lastMarker.nextDate);
+    //   currentCirculation = lastMarker.currentCirculation;
+    //   currentCapital = lastMarker.currentCapital;
+    // }
+  }
 
-      let recentMarkers: Marker[] = [];
-      let dailyMarkers: Marker[] = [];
-
-      if (false && !this.config.bypassCache && Fs.existsSync(filePath)) {
-        log(`Reading cached recovery data from ${filePath}`);
-        const fileContent = Fs.readFileSync(filePath, 'utf8');
-        const parsedData = JSON.parse(fileContent);
-        this.hourlyMarkers = parsedData.map(markerData => {
-          return Marker.fromJsonCache(markerData);
-        });
-        const lastMarker = this.hourlyMarkers[this.hourlyMarkers.length - 1];
-        currentDate = dayjs.utc(lastMarker.nextDate);
-        currentCirculation = lastMarker.currentCirculation;
-        currentCapital = lastMarker.currentCapital;
-        
-      } else {
-        log(`Running recovery for ${currentDate} to ${stopDate}`);
-        while (currentDate.isBefore(stopDate) && (!finalStopDate || currentDate.isBefore(finalStopDate))) {
-          const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
-
-          marker.setAnnualTransactions(this.rules.transactionsAnnually);
-          marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
-
-          marker.setReserve(this.rules, this.reserve);
-          marker.runRecovery(this.rules, recentMarkers, vault);
-          marker.manageSeigniorageProfits(this.rules, this.reserve);
-          marker.runDisabledMechanisms(this.rules, false);
-          
-          recentMarkers = [...recentMarkers.slice(-maxRecentMarkers), marker];
-          dailyMarkers.push(marker);
-
-          currentDate = marker.nextDate;
-          currentCirculation = marker.currentCirculation;
-          currentCapital = marker.currentCapital;
-
-          const isAfterDesiredDate = currentDate.isAfter(dayjs.utc(DEFAULT_ENDING_DATE));
-          if (isAfterDesiredDate) {
-            if (marker.currentPrice >= 1.00) {
-              log(`Recovery stopped at ${currentDate} because price is >= 1.0`);
-              break;
-            }
-            if (marker.currentPrice <= dailyMarkers[0].startingPrice) {
-              log(`Recovery stopped at ${currentDate} because there is no hope of recovery`);
-              break;
-            }
-          }
-        }
-        if (!this.config.bypassCache) {
-          const toSave = this.hourlyMarkers.map(m => m.toJsonCache());
-          Fs.writeFileSync(filePath, JSON.stringify(toSave, null, 2));
-        }
-      }
-
-      const firstPrice = dailyMarkers[0].startingPrice;
-      const lastPrice = dailyMarkers[dailyMarkers.length - 1].currentPrice;
-      const priceIsRecovering = lastPrice > firstPrice;
-
-      this.dailyMarkers.push(...dailyMarkers);
-      dailyMarkers = [];
-
-      const isMoreThan100Years = currentDate.isAfter(startingDate.add(100, 'year'));
-      const isPathDesiredDate = currentDate.isAfter(dayjs.utc(DEFAULT_ENDING_DATE));
-      const isPathDesiredDateAndPriceHasRecovered = isPathDesiredDate && lastPrice >= 1.0;
-      const isPathDesiredDateAndPriceIsNotRecovering = isPathDesiredDate && !priceIsRecovering;
-
-      if (isPathDesiredDateAndPriceHasRecovered || isPathDesiredDateAndPriceIsNotRecovering) {
-        break;
-      } else if (isMoreThan100Years) {
-        // do not run for more than 100 years
-        log(`Stopping recovery after 100 years`);
-        break;
-      } else if (finalStopDate && currentDate.isSameOrAfter(finalStopDate)) {
-        log(`Stopping recovery at ${finalStopDate}`);
-        break;
-      }
+  public saveToCache(filePath: string) {
+    if (!this.config.bypassCache) {
+      const toSave = this.hourlyMarkers.map(m => m.toJsonCache());
+      Fs.writeFileSync(filePath, JSON.stringify(toSave, null, 2));
     }
-
-    return this.dailyMarkers;
   }
 }

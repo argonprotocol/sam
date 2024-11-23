@@ -42,7 +42,7 @@ const rules = {
   btcRatchetingPct: 100,
   btcRatchetWhenPriceChangePct: 10,
   btcPriceOverride: 34_082.21,
-  btcMaxTxnsPerHour: 4000,
+  btcMaxTxnsPerHour: 1000,
   unvaultLatencyInHours: 120,
 
   enableCertaintyGreed: true,

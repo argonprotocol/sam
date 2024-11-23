@@ -399,25 +399,26 @@ export default class Marker {
     const unlockBurnPerBitcoinDollar = Vault.calculateUnlockBurnPerBitcoinDollar(this.lowestPrice);
     const bitcoinsToUnvault = divide(excessCirculation, (unlockBurnPerBitcoinDollar * vault.dollarsPerBitcoinUnlock), 20);
     const throttledBitcoinsToUnvault = this.throttleBitcoinsToUnvault(bitcoinsToUnvault, vault, rules);
+    // console.log('bitcoinsToUnvault', bitcoinsToUnvault, throttledBitcoinsToUnvault);
     if (!throttledBitcoinsToUnvault) return;
 
     vault.unvaultBitcoins(throttledBitcoinsToUnvault, this.currentPrice);
     this.removeCirculation(throttledBitcoinsToUnvault * (unlockBurnPerBitcoinDollar * vault.dollarsPerBitcoinUnlock), 'BitcoinFusion');
   }
 
-  private throttleBitcoinsToUnvault(bitcoinsToUnvault: number, vault: Vault, rules: IRules) {
-    const currentUnlockValue = vault.getTotalUnlockValue();
-    const currentUnlockValuePerBtc = divide(currentUnlockValue, vault.bitcoinCount);
-    const maximumUnlockValue = divide(this.currentCirculation, 2);
-    const maximumBitcoinCount = divide(maximumUnlockValue, currentUnlockValuePerBtc);
-
-    const unlockBurnPerDollarAtHalfPrice = Vault.calculateUnlockBurnPerBitcoinDollar(this.currentPrice / 2);
-    const bitcoinsNeededAtHalfPrice = divide(this.currentCirculation, (unlockBurnPerDollarAtHalfPrice * vault.dollarsPerBitcoinUnlock), 20);
-    
-    const bitcoinsClearToUse = vault.bitcoinCount - bitcoinsNeededAtHalfPrice;
-    const bitcoinsDesiredClear = maximumBitcoinCount - bitcoinsNeededAtHalfPrice;
-
+  private throttleBitcoinsToUnvault(bitcoinsToUnvault: number, vault: Vault, rules: IRules) {    
     if (this.currentPrice < 0.98) {
+      const currentUnlockValue = vault.getTotalUnlockValue();
+      const currentUnlockValuePerBtc = divide(currentUnlockValue, vault.bitcoinCount);
+      const maximumUnlockValue = divide(this.currentCirculation, 10);
+      const maximumBitcoinCount = divide(maximumUnlockValue, currentUnlockValuePerBtc);
+      // console.log('throttle', maximumUnlockValue, maximumBitcoinCount);
+
+      const unlockBurnPerDollarAtReducedPrice = Vault.calculateUnlockBurnPerBitcoinDollar(this.currentPrice / 3);
+      const bitcoinsNeededAtReducedPrice = divide(this.currentCirculation, (unlockBurnPerDollarAtReducedPrice * vault.dollarsPerBitcoinUnlock), 20);
+      const bitcoinsClearToUse = vault.bitcoinCount - bitcoinsNeededAtReducedPrice;
+      const bitcoinsDesiredClear = maximumBitcoinCount - bitcoinsNeededAtReducedPrice;
+      
       const latencyFactor = Math.min(divide(bitcoinsClearToUse, bitcoinsDesiredClear), 1);
       const hoursToFinishUnlocking = (rules.unvaultLatencyInHours - (rules.unvaultLatencyInHours * latencyFactor)) || 1;
       const bitcoinsToUnvaultPerHour = divide(Math.min(bitcoinsToUnvault, vault.bitcoinCount), hoursToFinishUnlocking, 20);

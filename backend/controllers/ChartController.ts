@@ -23,50 +23,75 @@ export default class StartController {
   }
 
   public async collapseThenRecover(rules: IRules, startingVaultMeta: IVaultMeta) {
-    const startingPrice = 1.00;
-    const startingDate = dayjs.utc(TERRA_COLLAPSE_DATE)
-
+    let currentPrice = 1.00;
+    let currentDate = dayjs.utc(TERRA_COLLAPSE_DATE)
+    
     const runner1 = new BlockchainRunner(rules);
-    runner1.runCollapse(startingPrice, startingDate, startingVaultMeta);
- 
-    const lastMarker = runner1.dailyMarkers[runner1.dailyMarkers.length - 1];        
-    const { currentPrice, nextDate: currentDate, currentCirculation, endingVaultMeta: lastVaultMeta } = lastMarker;
+    runner1.runCollapse(currentPrice, currentDate, startingVaultMeta);
+    let lastMarker = runner1.dailyMarkers[runner1.dailyMarkers.length - 1];
+    let currentCirculation = lastMarker.currentCirculation;
+    let currentVaultMeta = lastMarker.endingVaultMeta;
+    currentPrice = lastMarker.currentPrice;
+    currentDate = lastMarker.nextDate;
 
     const runner2 = new BlockchainRunner(rules);
-    console.log('currentCirculation', currentCirculation);
-    runner2.runRecovery(currentPrice, currentDate, currentCirculation, lastVaultMeta);
-    
+    runner2.runRecovery(currentPrice, currentDate, currentCirculation, currentVaultMeta);
+    lastMarker = runner2.dailyMarkers[runner2.dailyMarkers.length - 1];
+    currentCirculation = lastMarker.currentCirculation;
+    currentVaultMeta = lastMarker.endingVaultMeta;
+    currentPrice = lastMarker.currentPrice;
+    currentDate = lastMarker.nextDate;
+
+    const runner3 = new BlockchainRunner(rules);
+    runner3.runRegrowth(currentPrice, currentDate, currentCirculation, currentVaultMeta);
+
     return {
-      collapse: runner1.dailyMarkers.map(m => m.toJson()),
-      recover: runner2.dailyMarkers.map(m => m.toJson()),
+      collapsing: runner1.dailyMarkers.map(m => m.toJson()),
+      recovering: runner2.dailyMarkers.map(m => m.toJson()),
+      regrowth: runner3.dailyMarkers.map(m => m.toJson()),
     };
   }
 
   public async collapsedForever(rules: IRules, startingVaultMeta: IVaultMeta) {
-    const startingPrice = 1.00;
-    const startingDate = dayjs.utc(TERRA_COLLAPSE_DATE);
+    let currentPrice = 1.00;
+    let currentDate = dayjs.utc(TERRA_COLLAPSE_DATE);
 
     const runner1 = new BlockchainRunner(rules);
-    runner1.runCollapse(startingPrice, startingDate, startingVaultMeta);
- 
-    const lastMarker = runner1.dailyMarkers[runner1.dailyMarkers.length - 1];
-    const runner2 = new BlockchainRunner(rules);
-    runner2.runCollapsedForever(lastMarker.nextDate, lastMarker.currentCirculation, lastMarker.currentCapital, lastMarker.endingVaultMeta);
+    runner1.runCollapse(currentPrice, currentDate, startingVaultMeta);
+    let lastMarker = runner1.dailyMarkers[runner1.dailyMarkers.length - 1];
+    let currentCirculation = lastMarker.currentCirculation;
+    let currentCapital = lastMarker.currentCapital;
+    let currentVaultMeta = lastMarker.endingVaultMeta;
+    currentDate = lastMarker.nextDate;
 
-    return [
-      ...runner1.dailyMarkers.map(m => m.toJson()),
-      ...runner2.dailyMarkers.map(m => m.toJson())
-    ];
+    const runner2 = new BlockchainRunner(rules);
+    runner2.runCollapsedForever(currentDate, currentCirculation, currentCapital, currentVaultMeta);
+
+    return {
+      collapsing: runner1.dailyMarkers.map(m => m.toJson()),
+      collapsedForever: runner2.dailyMarkers.map(m => m.toJson())
+    };
   }
 
   public async collapsingRecovery(rules: IRules, startingVaultMeta: IVaultMeta) {
-    const startingPrice = 1.00;
-    const startingDate = dayjs.utc(TERRA_COLLAPSE_DATE);
+    let currentPrice = 1.00;
+    let currentDate = dayjs.utc(TERRA_COLLAPSE_DATE);
 
-    const runner = new BlockchainRunner(rules);
-    runner.runCollapsingRecovery(startingPrice, startingDate, startingVaultMeta);
- 
-    return runner.dailyMarkers.map(m => m.toJson());
+    const runner1 = new BlockchainRunner(rules);
+    runner1.runCollapsingRecovery(currentPrice, currentDate, startingVaultMeta);
+    let lastMarker = runner1.dailyMarkers[runner1.dailyMarkers.length - 1];
+    let currentCirculation = lastMarker.currentCirculation;
+    let currentVaultMeta = lastMarker.endingVaultMeta;
+    currentPrice = lastMarker.currentPrice;
+    currentDate = lastMarker.nextDate;
+
+    const runner2 = new BlockchainRunner(rules);
+    runner2.runRegrowth(currentPrice, currentDate, currentCirculation, currentVaultMeta);
+
+    return {
+      collapsingRecovery: runner1.dailyMarkers.map(m => m.toJson()),
+      regrowth: runner2.dailyMarkers.map(m => m.toJson()),
+    }
   }
 
   public async dollar(endingDateStr: string, rules: IRules) {

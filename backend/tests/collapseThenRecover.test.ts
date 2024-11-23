@@ -54,11 +54,9 @@ test("test recovery", () => {
   const startingPrice = 0.001;
   const startingDate = dayjs.utc('2022-06-30');
 
-  const stopDate = startingDate.add(6, 'days');
-
   const startingCirculation = customRules.circulation;
   const runner = new BlockchainRunner(customRules, { bypassCache: true });
-  const dailyMarkers = runner.runRecovery(startingPrice, startingDate, startingCirculation, vaultMetaBeforeRecovery, stopDate);
+  const dailyMarkers = runner.runRecovery(startingPrice, startingDate, startingCirculation, vaultMetaBeforeRecovery);
   const lastMarker = dailyMarkers[dailyMarkers.length - 1];
 
   expect(lastMarker.startingPrice).toBe(1.00);
@@ -70,11 +68,9 @@ test("test recovery without bitcoin", () => {
   const startingPrice = 0.001;
   const startingDate = dayjs.utc('2022-06-30');
 
-  const stopDate = startingDate.add(100, 'years');
-
   const startingCirculation = customRules.circulation;
   const runner = new BlockchainRunner(customRules, { bypassCache: true });
-  const dailyMarkers = runner.runRecovery(startingPrice, startingDate, startingCirculation, vaultMetaBeforeRecovery, stopDate);
+  const dailyMarkers = runner.runRecovery(startingPrice, startingDate, startingCirculation, vaultMetaBeforeRecovery);
   const lastMarker = dailyMarkers[dailyMarkers.length - 1];
   const yearsToRecover = lastMarker.nextDate.diff(startingDate, 'years');
 

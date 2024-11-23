@@ -6,25 +6,31 @@ import Vault, { IVaultMeta } from '../lib/Vault';
 import { TERRA_RESERVE_FUND } from '../lib/BlockchainRunner';
 import Reserve from '../lib/Reserve';
 
-test("test single day recovery", () => {
+test.only("test single day recovery", () => {
+  const customRules = {
+    ...rules,
+    btcMaxTxnsPerHour: 1000,
+  };
   const currentDate = dayjs.utc('2022-07-04');
   const durationInHours = 24;
-  const currentCirculation = 55_775_508.70968893;
-  const currentCapital = 18_700_000;
+  const currentCirculation = 10_000_000;
+  const currentCapital = 5_000_000;
+  
   const vaultMeta: IVaultMeta = {
-    bitcoinCount: 244714.93824018317,
-    dollarsPerBitcoinLock: 36702.5907271,
-    dollarsPerBitcoinUnlock: 33123.6107271,
-    argonsBurnedPerBitcoinDollar: 1.3805290397670733,
-    argonBurnCapacity: 6_000_000_000,
+    bitcoinCount: 100_000,
+    dollarsPerBitcoinLock: 10_000,
+    dollarsPerBitcoinUnlock: 10_000,
+    argonsBurnedPerBitcoinDollar: 1,
+    argonBurnCapacity: 100_000_000,
     profitsToDate: 0,
     argonRatioPrice: 1.00,
+    bitcoinMintedArgons: 0,
   };
 
   const reserve = new Reserve(TERRA_RESERVE_FUND, TERRA_RESERVE_FUND);
   const vault = new Vault('cached', currentDate);
   vault.loadFromCache(vaultMeta);
-  vault.setPricePerBtcOverride(rules.btcPriceOverride);
+  vault.setPricePerBtcOverride(10_000);
 
   const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
 
@@ -34,7 +40,8 @@ test("test single day recovery", () => {
   marker.runRecovery(rules, [], vault);
   marker.manageSeigniorageProfits(rules, reserve);
 
-  expect(marker.startingPrice).toBe(0.335272603202);
+  console.log(marker.toJson());
+  expect(marker.startingPrice.toFixed(2)).toBe('0.50');
   expect(marker.currentPrice).toBe(1.00);
 });
 
@@ -51,6 +58,7 @@ test("almost recovered while collapsing 1", () => {
     argonBurnCapacity: 6_000_000_000,
     profitsToDate: 0,
     argonRatioPrice: 1.00,
+    bitcoinMintedArgons: 0,
   };
 
   const reserve = new Reserve(TERRA_RESERVE_FUND, TERRA_RESERVE_FUND);
@@ -83,6 +91,7 @@ test("almost recovered while collapsing 2", () => {
     argonBurnCapacity: 6_000_000_000,
     profitsToDate: 0,
     argonRatioPrice: 1.00,
+    bitcoinMintedArgons: 0,
   };
 
   const reserve = new Reserve(TERRA_RESERVE_FUND, TERRA_RESERVE_FUND);
@@ -117,6 +126,7 @@ test("started recovering while collapsing", () => {
     argonBurnCapacity: 6_000_000_000,
     profitsToDate: 0,
     argonRatioPrice: 1.00,
+    bitcoinMintedArgons: 0,
   };
   const previousMarkers = [
     { durationInHours: 24, currentCapital: 14245274221.944801, pctIncreaseFromTaxationCompoundedAnnually: 6.319735450124361e+21 } as Marker

@@ -41,7 +41,6 @@ export function createChartOptions(chartPoints: any[], pointRadius: number[], do
           pointBorderWidth: 1,
           pointBackgroundColor: '#BDC2CE',
           pointRadius: dollarPointRadius,
-          hidden: true,
         },
       ]
     },

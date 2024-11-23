@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col w-full">
     <ChartBg />
-    <Chart ref="chartRef" :xAxisPhases="xAxisPhases">
+    <Chart ref="chartRef" :xAxisPhases="xAxisPhases" :isRunning="true">
       <div StatusText v-if="statusText" :style="`left: ${statusTextPos.left}px; top: ${statusTextPos.top}px`" class="absolute z-20 font-bold text-slate-400 text-2xl">{{statusText}}</div>
     </Chart>
     <TerraCollapseOverlay v-if="showTerraCollapseOverlay" @close="loadCollapseData" />
@@ -34,9 +34,13 @@ const xAxisPhases = Vue.ref([
   {
     id: 'running',
     label: "Running Terra's Historical Data Against the Argon",
-    startingDate: '2020-10-01',
-    endingDate: '2025-12-31',
     bgColor: '#AAB0B7',
+    firstItem: {
+      startingDate: '2020-10-01',
+    },
+    lastItem: {
+      startingDate: '2025-12-31',
+    },
   }
 ]);
 
@@ -113,7 +117,7 @@ async function loadCollapseData() {
   chartRef.value?.stopPulsing();
   statusText.value = '';
 
-  for (const [index, item] of blockData.collapseThenRecover.collapse.entries()) {
+  for (const [index, item] of blockData.collapseThenRecover.collapsing.entries()) {
     blockCount += item.blockCount;
     item.showPointOnChart = index === 0;
 
@@ -138,40 +142,40 @@ async function loadRecoveryData() {
   statusText.value = '';
 
   let items: any[] = [];
-  let isFirstPoint = true;
-  let previousPrice = 0.001;
-  let lastMarkerRecovered = false;
 
-  for (const [index, item] of blockData.collapseThenRecover.recover.entries()) {
+  for (const [index, item] of blockData.collapseThenRecover.recovering.entries()) {
     blockCount += item.blockCount;
-    item.showPointOnChart = index === 0 || lastMarkerRecovered;
+    item.showPointOnChart = index === 0;
     items.push(item);
     
-    const shouldUpdateNow = previousPrice >= 1.00 && !lastMarkerRecovered ? index % 10 === 0 : true;
+    const updateSpeed = 100;
+    const pointPos = chartRef.value?.addPoints(items);
+    updateStatusTextPos(pointPos);
+    items = [];
+    await new Promise(resolve => setTimeout(resolve, updateSpeed));
+  }
 
-    if (shouldUpdateNow) {
-      const updateSpeed = previousPrice >= 1.00 ? 1 : 100;
+  showFinishedRecoveryOverlay.value = true;
+
+  for (const [index, item] of blockData.collapseThenRecover.regrowth.entries()) {
+    blockCount += item.blockCount;
+    item.showPointOnChart = index === 0;
+    items.push(item);
+    
+    if (index % 10 === 0) {
+      const updateSpeed = 1;
       const pointPos = chartRef.value?.addPoints(items);
       updateStatusTextPos(pointPos);
       items = [];
-      isFirstPoint = false;
       await new Promise(resolve => setTimeout(resolve, updateSpeed));
     }
-    
-    lastMarkerRecovered = previousPrice < 1.00 && item.endingPrice >= 1.00;
-    if (lastMarkerRecovered) {
-      daysToRecover.value = index + 1;
-      showFinishedRecoveryOverlay.value = true;
-    }
-    previousPrice = item.endingPrice;
   }
 
   chartRef.value?.addPoints(items);
 }
 
 function navigateToBase() {
-  if (!blockData.start || !blockData.collapseThenRecover || !blockData.dollar) {
-    console.log('WAITING TO navigateToBase');
+  if (!blockData.collapsedForever || !blockData.collapsingRecovery || !blockData.dollar) {
     setTimeout(navigateToBase, 100);
     return;
   }

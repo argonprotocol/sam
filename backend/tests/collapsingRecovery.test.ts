@@ -4,16 +4,17 @@ import dayjs from 'dayjs';
 import rules from './helpers/rules';
 
 const vaultMetaBeforeRecovery = {
-  argonBurnCapacity: 8469444408.260929,
+  argonBurnCapacity: 645_664_424_0.317682,
   argonRatioPrice: 1,
   argonsBurnedPerBitcoinDollar: 1,
-  bitcoinCount: 248500.44666296375,
-  dollarsPerBitcoinLock: 37625.6868974,
-  dollarsPerBitcoinUnlock: 34082.21,
-  profitsToDate: 34445702220.317726,
+  bitcoinCount: 198_423.6610318361,
+  dollarsPerBitcoinLock: 35_788.661922,
+  dollarsPerBitcoinUnlock: 32_539.6891013,
+  profitsToDate: 700_794_416.2318723,
+  bitcoinMintedArgons: 9_350_000_000.000013,
 }
 
-test("test collapsing recovery", () => {
+test.only("test collapsing recovery", () => {
   const customRules = { ...rules, btcMaxTxnsPerHour: 1000 };
   const startingPrice = 1.00;
   const startingDate = dayjs.utc(TERRA_COLLAPSE_DATE);
@@ -22,13 +23,15 @@ test("test collapsing recovery", () => {
   const dailyMarkers = runner.runCollapsingRecovery(startingPrice, startingDate, vaultMetaBeforeRecovery);
   const lastMarker = dailyMarkers[dailyMarkers.length - 1];
 
-  let lowestPrice = 1.00;
+  let daysToRecover = 0;
+  let daysStable = 0;
   for (const marker of dailyMarkers) {
-    if (marker.currentPrice < lowestPrice) {
-      lowestPrice = marker.currentPrice;
-    }
+    daysStable = marker.currentPrice === 1 ? daysStable + 1 : 0;
+    if (daysStable < 5) daysToRecover++;
   }
 
+  expect(daysToRecover).toBe(18);
+  expect(lastMarker.endingVaultMeta.bitcoinCount).toBe(91061.35181167797);
   expect(lastMarker.startingPrice).toBe(1.00);
   expect(lastMarker.currentPrice).toBe(1.00);
 });

@@ -1,7 +1,0 @@
-{
-  "compilerOptions": {
-    "importHelpers": true,
-    "esModuleInterop": true,
-    // ... other options ...
-  }
-}

@@ -12,17 +12,17 @@
               
               <div ref="scoreboardRef" class="flex flex-row mx-1 items-stretch space-x-2 text-slate-500 font-light">
                 
-                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
-                  <h4 class="font-bold py-2 opacity-80">Bitcoin Tokens</h4>
+                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded-b pb-1 pt-1 px-0.5">
+                  <h4 :class="{'opacity-60': graphIsOpen }" class="font-bold py-2 opacity-80">Bitcoin Tokens</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
                     
-                    <div :class="{'bg-green-100': item.step.burnCoverage > item.previous.step.burnCoverage, 'bg-red-100': item.step.burnCoverage < item.previous.step.burnCoverage}" class="relative w-1/2 pb-2 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinCoverage" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'opacity-30': graphIsOpen, 'bg-green-100': item.step.burnCoverage > getPreviousItem(item).step.burnCoverage, 'bg-red-100': item.step.burnCoverage < getPreviousItem(item).step.burnCoverage}" class="relative w-1/2 pb-2 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinCoverage" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       ₳{{ formatAsBillions(item.step.burnCoverage) }}
-                      <div>Burn Capacity</div>
+                      <div>Burn Coverage</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
                     
-                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'opacity-30': graphIsOpen }" class="relative w-1/2 pb-2 cursor-pointer hover:text-fuchsia-800" insightId="bitcoinProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       ${{ formatAsBillions(item.endingVaultMeta.profitsToDate) }}
                       <div>Vaulting Profits</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
@@ -31,15 +31,15 @@
                   </div>
                 </div>
 
-                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
-                  <h4 class="font-bold py-2 opacity-80">Argon Tokens</h4>
+                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded-b pb-1 pt-1 px-0.5">
+                  <h4 :class="{'opacity-60': graphIsOpen }" class="font-bold py-2 opacity-80">Argon Tokens</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
-                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-lime-700" insightId="argonRelativeToDollar" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'opacity-30': graphIsOpen }" class="relative w-1/2 pb-2 cursor-pointer hover:text-lime-700" insightId="argonRelativeToDollar" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       {{ item.step.dollarDiffPct > 0 ? '+' : '' }}{{ item.step.dollarDiffPct }}%
-                      <div>Relative to Dollar</div>
+                      <div>Relativity to Dollar</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
-                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-red-700" insightId="argonLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'opacity-30': graphIsOpen }" class="relative w-1/2 pb-2 cursor-pointer hover:text-red-700" insightId="argonLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       ${{ formatAsBillions(item.argonLossDueToFear) }}
                       <div>Losses Due to Fear</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
@@ -47,15 +47,15 @@
                   </div>
                 </div>
 
-                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
-                  <h4 class="font-bold py-2 opacity-80">Ownership Tokens</h4>
+                <div class="relative w-1/4 flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded-b pb-1 pt-1 px-0.5">
+                  <h4 :class="{'opacity-60': graphIsOpen }" class="font-bold py-2 opacity-80">Ownership Tokens</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
-                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-lime-700" insightId="seigniorageProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'opacity-30': graphIsOpen }" class="relative w-1/2 pb-2 cursor-pointer hover:text-lime-700" insightId="seigniorageProfits" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       ${{ formatAsBillions(item.seigniorageProfits) }}
                       <div>Seigniorage Profits</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
-                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-red-700" insightId="seigniorageLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'opacity-30': graphIsOpen }" class="relative w-1/2 pb-2 cursor-pointer hover:text-red-700" insightId="seigniorageLosses" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       $0
                       <div>Seigniorage Losses</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
@@ -63,16 +63,16 @@
                   </div>
                 </div>
 
-                <div class="w-1/4 relative flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded pb-1 pt-1 px-0.5">
-                  <h4 class="font-bold py-2 opacity-80">Transactional Usage</h4>
+                <div class="w-1/4 relative flex flex-col items-center space-x-1 border border-t-0 border-slate-300/90 rounded-b pb-1 pt-1 px-0.5">
+                  <h4 :class="{'opacity-60': graphIsOpen }" class="font-bold py-2 opacity-80">Transactional Usage</h4>
                   <div class="flex flex-row space-x-1 divide-x divide-slate-300/80 text-center w-full text-slate-500">
-                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="p2pTransactions" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                    <div :class="{'opacity-30': graphIsOpen }" class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="annualTransactions" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
                       {{ formatAsBillions(item.annualTransactions) }}
                       <div>Peer-to-Peer Txns</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
-                    <div class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="micropaymentArr" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
-                      ${{ formatAsBillions(item.annualMicropayments) }}
+                    <div :class="{'opacity-30': graphIsOpen }" class="relative w-1/2 pb-2 cursor-pointer hover:text-blue-700" insightId="annualMicropayments" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="grandparent">
+                      ₳{{ formatAsBillions(Marker.calculateWageProtectedPrice(item.annualMicropayments, item.lowestPrice)) }}
                       <div>Micropayment ARR</div>
                       <div VerticalLineWithTopFade class="absolute bottom-[-37px] left-1/2 h-7 -translate-x-1/2"></div>
                     </div>
@@ -168,7 +168,7 @@
                   <div class="w-1/4 flex flex-col relative">
                     <div HorizontalLine class="w-1/2 absolute top-0 left-1/2"></div>
                     <div VerticalLineWithBottomFade class="relative left-1/2 h-16"></div>
-                    <SlotMachine id="supply" bgColor="#9765a8" :yesterday="item.previous.endingCirculation" :today="item.endingCirculation" :tomorrow="item.next.endingCirculation" :pct="supplyPct" class="w-full grow" />
+                    <SlotMachine id="supply" bgColor="#9765a8" :yesterday="getPreviousItem(item).endingCirculation" :today="item.endingCirculation" :tomorrow="getNextItem(item).endingCirculation" :pct="supplyPct" class="w-full grow" />
                   </div>
                   <div class="relative h-full">
                     <div HorizontalLine class="w-full absolute top-0 left-0"></div>
@@ -189,7 +189,7 @@
                   <div class="w-1/4 flex flex-col relative">
                     <div HorizontalLine class="w-1/2 absolute top-0 right-1/2"></div>
                     <div VerticalLineWithBottomFade class="relative left-1/2 h-16"></div>
-                    <SlotMachine id="demand" bgColor="#668ACD" :yesterday="item.previous.endingCapital" :today="item.endingCapital" :tomorrow="item.next.endingCapital" :pct="demandPct" class="w-full grow" />
+                    <SlotMachine id="demand" bgColor="#668ACD" :yesterday="getPreviousItem(item).endingCapital" :today="item.endingCapital" :tomorrow="getNextItem(item).endingCapital" :pct="demandPct" class="w-full grow" />
                   </div>
                   <div class="grow relative">
                     <div class="absolute top-20 bottom-0 left-14 flex flex-col z-40 justify-around">
@@ -283,10 +283,11 @@ import StepForwardIcon from '../assets/step-forward.svg';
 import StepBackwardIcon from '../assets/step-backward.svg';
 import DownloadIcon from '../assets/download-outlined.svg';
 import CloseIcon from '../assets/close.svg';
-import { formatShorthandNumber, formatChangePct, addCommas } from '../lib/BasicUtils';
+import { formatChangePct, addCommas } from '../lib/BasicUtils';
 import Minichart from '../components/Minichart.vue';
 import SlotMachine from '../components/SlotMachine.vue';
 import GraphView from './GraphView.vue';
+import Marker from '../engine/Marker';
 
 dayjs.extend(dayjsUtc);
 
@@ -391,7 +392,7 @@ function showInsight(event: MouseEvent) {
   }
   
   const data: any = { date: item.value.startingDate }
-  const previousItem =  item.value.previous;
+  const previousItem =  getPreviousItem(item.value);
   
   if (id === 'bitcoin') {
     data.bitcoinChange = item.value.endingVaultMeta.bitcoinCount - previousItem.endingVaultMeta.bitcoinCount;
@@ -417,36 +418,45 @@ function hideInsight() {
   emitter.emit('hideInsight');
 }
 
-const graphIsOpen = Vue.ref(false);
+const graphIsOpen = Vue.ref('');
 
 function toggleGraphView(event: MouseEvent) {
   const targetElem = event.currentTarget as HTMLElement;
   if (!targetElem) return;
 
-  if (graphIsOpen.value) {
-    graphIsOpen.value = false;
-    emitter.emit('hideGraphView');
-    showInsight(event);
-    return;
-  }
-
   const id = targetElem.getAttribute('insightId') || '';
   const targetRect = targetElem.getBoundingClientRect();
 
-  const grandparentElem = targetElem.parentElement?.parentElement;
+  if (graphIsOpen.value === id) {
+    graphIsOpen.value = '';
+    emitter.emit('hideGraphView');
+    showInsight(event);
+    return;
+  } else if (graphIsOpen.value) {
+    emitter.emit('hideGraphView');
+  }
+
+  const grandparentElem = targetElem.parentElement?.parentElement?.parentElement;
   if (!grandparentElem) return;
 
   const scoreboardRect = scoreboardRef.value?.getBoundingClientRect();
   const grandparentRect = grandparentElem.getBoundingClientRect();
 
   const padding = scoreboardRect?.left;
+  console.log(grandparentRect.left, targetRect.left, grandparentElem, targetElem);
+
   const arrowLeft = (targetRect.left - grandparentRect.left) + (targetRect.width / 2);
   const top = targetRect.top + targetRect.height;
+  const width = targetRect.width;
 
-  emitter.emit('showGraphView', { id, padding, arrowLeft, top });
-  graphIsOpen.value = true;
+  emitter.emit('showGraphView', { id, padding, arrowLeft, top, width });
+  graphIsOpen.value = id;
   hideInsight();
 }
+
+emitter.on('graphViewHidden', () => {
+  graphIsOpen.value = '';
+});
 
 function onMinichartClick(event: any) {
   if (!playerBarRef.value) return;
@@ -599,14 +609,20 @@ emitter.on('openPlayer', (payload: any) => {
     item.step = createStep(item);
   }
 
-  const previousItem = items.value[0].previous;
-  previousItem.step = createStep(previousItem);
-
-  const nextItem = items.value[items.value.length - 1].next;
-  nextItem.step = createStep(nextItem);
-
   selectItem(0);
 });
+
+function getNextItem(item: any) {
+  const nextItem = items.value[item.nextIdx] || item;
+  nextItem.step ??= createStep(nextItem);
+  return nextItem;
+}
+
+function getPreviousItem(item: any) {
+  const previousItem = items.value[item.previousIdx] || item;
+  previousItem.step ??= createStep(previousItem);
+  return previousItem;
+}
 
 function createStep(item: any) {
   const dollarDiffPct = formatChangePct((item.endingPrice - item.dollar.endingPrice) / item.dollar.endingPrice);

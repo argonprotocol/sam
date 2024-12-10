@@ -1,14 +1,14 @@
 <template>
   <div HeaderBar :class="[isReady ? '' : 'pointer-events-none']" class="HEADER COMPONENT flex flex-row pl-4 items-center">
-    <div :class="[isReady ? 'opacity-100' : 'opacity-30']" class="grow flex flex-row items-center">
+    <div :class="[isRunning ? 'opacity-30' : 'opacity-100']" class="grow flex flex-row items-center">
       <a Logo href="https://argonprotocol.org" class="block w-8 relative top-[1px]"><Logo /></a>
       <h1 class="text-2xl font-extralight relative top-[0.5px] text-left pl-[10px] py-3 whitespace-nowrap text-slate-600">
       Stabilization Analysis Model
     </h1>
     </div>
     <div class="flex flex-row space-x-1 items-center divide-x-1 pr-4">
-      <ul :class="[isReady ? 'opacity-100' : 'opacity-50']" class="TOGGLE flex flex-row bg-[#E9EBF1] border border-[#b8b9bd] rounded mr-4 text-center text-slate-600" :disabled="!isReady">
-        <li class="border-r border-slate-400" @click="saveFilter('collapseThenRecover')" :class="{ 'selected': selectedFilter === 'collapseThenRecover' }">
+      <ul :class="[isRunning ? 'opacity-50' : 'opacity-100']" class="TOGGLE flex flex-row bg-[#E9EBF1] border border-[#b8b9bd] rounded mr-4 text-center text-slate-600" :disabled="!isReady" :isRunning="isRunning">
+        <li class="border-r border-slate-400" @click="saveFilter('collapseThenRecover')" :class="{ 'selected': selectedFilter === 'collapseThenRecover' }" insightId="argonRelativeToDollar" @mouseenter="showInsight" @mouseleave="hideInsight">
           <span>Argon Mechanisms Enabled After Collapse</span>
         </li>
         <li class="border-r border-slate-400" @click="saveFilter('collapsedForever')" :class="{ 'selected': selectedFilter === 'collapsedForever' }">
@@ -18,9 +18,9 @@
           <span>Always Enabled</span>
         </li>
       </ul>
-      <div :class="[isReady ? 'opacity-100' : 'opacity-20']" class="flex flex-row space-x-1 items-center divide-x-1">
+      <div :class="[isRunning ? 'opacity-20' : 'opacity-100']" class="flex flex-row space-x-1 items-center divide-x-1">
         <div class="px-1">
-          <div @click="resetToDefault" class="IconWrapper" @mouseenter="showTooltip($event, 'Reset to Default')" @mouseleave="hideTooltip">
+          <div @click="resetToDefault" class="IconWrapper pointer-events-auto" @mouseenter="showTooltip($event, 'Reset to Default')" @mouseleave="hideTooltip">
             <ResetOutlined OutlineIcon class="h-[24px]" />
             <ResetSolid SolidIcon class="h-[24px]" />
           </div>
@@ -69,7 +69,7 @@ import MoreInfoMenu from './MoreInfoMenu.vue';
 import { showTooltip, hideTooltip } from '../lib/TooltipUtils';
 
 const basicStore = useBasicStore();
-const { selectedFilter, isReady } = storeToRefs(basicStore);
+const { selectedFilter, isReady, isRunning } = storeToRefs(basicStore);
 
 function resetToDefault() {
   basicStore.resetConfig();
@@ -100,11 +100,10 @@ function saveFilter(filter: IFilterName) {
       box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
       white-space: nowrap;
       &[disabled='true'] {
-        opacity: 0.5;
         pointer-events: none;
-        li {
-          opacity: 0.5 !important;
-        }
+      }
+      &[isRunning='true'] li {
+        opacity: 0.5 !important;
       }
       li {
         z-index: 1;

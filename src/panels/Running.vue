@@ -1,8 +1,9 @@
 <template>
   <div class="flex flex-col w-full">
     <ChartBg />
-    <Chart ref="chartRef" :xAxisPhases="xAxisPhases" :isRunning="true">
-      <div StatusText v-if="statusText" :style="`left: ${statusTextPos.left}px; top: ${statusTextPos.top}px`" class="absolute z-20 font-bold text-slate-400 text-2xl">{{statusText}}</div>
+    <Chart ref="chartRef" :xAxisPhases="xAxisPhases" :isRunning="true" :endingYear="chartEndingYear" :hideTooltip="!!statusText">
+      <div StatusText v-if="statusText" :style="`left: ${statusTextPos.left}px; top: ${statusTextPos.top}px`" class="absolute z-20 font-bold text-slate-400 text-2xl -translate-y-1/2">{{statusText}}</div>
+      <span StatusText v-else class="absolute left-1/2 top-1/3 z-20 font-bold text-slate-400 text-2xl text-center -translate-x-1/2">CREATING BLOCK #{{addCommas(blockCount)}}</span>
     </Chart>
   </div>
 </template>
@@ -10,14 +11,23 @@
 <script setup lang="ts">
 import * as Vue from 'vue';
 import { storeToRefs } from 'pinia';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import Chart from '../components/Chart.vue';
 import ChartBg from '../components/ChartBg.vue';
 import { useBasicStore } from '../store';
+import { addCommas } from '../lib/BasicUtils';
+import { IMarkerJson } from '../engine/Marker';
+
+dayjs.extend(utc);
 
 const basicStore = useBasicStore();
-const { pendingMarkers } = storeToRefs(basicStore);
+const { incomingMarkers, isRunning } = storeToRefs(basicStore);
 
 const chartRef = Vue.ref<typeof Chart | null>(null);
+const chartEndingYear = Vue.ref(0);
+
+const blockCount = Vue.ref(0);
 
 const statusOptions = {
   1: ['STARTING MODEL...', 'INITIALIZING BLOCKCHAIN NETWORK...', 'LOADING BITCOIN PRICES...', "MODELING TERRA'S HISTORY..."],
@@ -26,7 +36,7 @@ const statusOptions = {
 const xAxisPhases = Vue.ref([
   {
     id: 'running',
-    label: "Running Terra's Historical Data Against the Argon",
+    label: "Applying Terra's Historical Data to the Argon",
     bgColor: '#AAB0B7',
     firstItem: {
       startingDate: '2020-10-01',
@@ -57,49 +67,69 @@ const updateStatusText = () => {
 
 async function loadStartData() {
   let markers: any[] = [];
-  while (pendingMarkers.value.length > 0) {
-    const marker = pendingMarkers.value.shift();
-    markers.push(marker);
 
-    if (markers.length % 5 === 0) {
-      console.log('inserting', markers);
+  while (isRunning.value && incomingMarkers.value.length > 0) {
+    const marker = incomingMarkers.value.shift() as IMarkerJson;
+    const lastMarker = markers[markers.length - 1] || chartRef.value?.getLastItem();
+
+    markers.push(marker);
+    blockCount.value += marker?.blockCount || 0;
+
+    const phrasesToDisplay = generateStatusText(marker, lastMarker);
+    if (marker.phase === 'collapse' && phrasesToDisplay) {
+      await showStatusText(phrasesToDisplay);
+    }
+
+    let timeToWait = 1;
+    let stepsToJump = Math.max(1, Math.floor(incomingMarkers.value.length / 20));
+
+    console.log('stepsToJump = ', stepsToJump);
+
+    if (lastMarker && Math.abs(lastMarker.endingPrice - marker.endingPrice) > 0.05) {
+      timeToWait = 500;
+      stepsToJump === markers.length;
+    }
+
+    if (phrasesToDisplay || markers.length % stepsToJump === 0) {
       const pointPos = chartRef.value?.addPoints(markers);
       updateStatusTextPos(pointPos);
       markers = [];
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => setTimeout(resolve, timeToWait));
     }
-  }
-  setTimeout(loadStartData, 1);
-  return;
 
-  
-  let items: any[] = [];
-
-  for (const [index, item] of blockData.start.entries()) {
-    item.showPointOnChart = index === 0;
-    items.push(item);
-
-    if (index % 2 === 0) {
-      const pointPos = chartRef.value?.addPoints(items);
-      updateStatusTextPos(pointPos);
-      items = [];
-      await new Promise(resolve => setTimeout(resolve, 1));
+    if (marker.phase !== 'collapse' && phrasesToDisplay) {
+      await showStatusText(phrasesToDisplay);
     }
   }
 
-  const pointPos = chartRef.value?.addPoints(items);
+  chartEndingYear.value = markers.length ? dayjs.utc(markers[markers.length - 1].endingDate).year() : 2025;
+
+  const pointPos = chartRef.value?.addPoints(markers);
   updateStatusTextPos(pointPos);
+  setTimeout(loadStartData, 1); 
+}
 
-  chartRef.value?.startPulsing();
-  statusText.value = 'TRIGGERING COLLAPSE';
-  await new Promise(resolve => setTimeout(resolve, 1_000));
+function generateStatusText(marker: IMarkerJson, lastMarker: IMarkerJson | null) {
+  if (!lastMarker) return null;
+  if (lastMarker.phase === marker.phase) return null;
 
-  statusTextPos.value.top -= 12;
-  statusText.value = 'DEATH-SPIRAL COMPLETE';
-  await new Promise(resolve => setTimeout(resolve, 1_500));
+  if (marker.phase === 'collapse') {
+    return ['TRIGGERING COLLAPSE'];
+  } else if (['collapsedForever', 'recovery'].includes(marker.phase)) {
+    return ['DEATH-SPIRAL COMPLETE', 'ACTIVATING RESTABILIZATION MECHANISMS'];
+  } else if (marker.phase === 'regrowth') {
+    return ['RECOVERY COMPLETE'];
+  }
+  return null;
+}
 
-  statusText.value = 'ACTIVATING RESTABILIZATION MECHANISMS';
-  await new Promise(resolve => setTimeout(resolve, 1_500));
+async function showStatusText(phrases: string[]) {
+  for (const phrase of phrases) {
+    chartRef.value?.startPulsing();
+    statusText.value = phrase;
+    await new Promise(resolve => setTimeout(resolve, 2_000));
+    statusText.value = '';
+  }
 }
 
 function updateStatusTextPos(pos: { x: number, y: number }) {
@@ -118,7 +148,6 @@ Vue.onMounted(() => {
 
 <style lang="scss" scoped>
 [StatusText] {
-  transform: translateY(-50%);
   animation: textPulse 1s infinite;
 }
 

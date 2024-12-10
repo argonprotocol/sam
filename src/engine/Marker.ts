@@ -4,6 +4,7 @@ import IRules from "../interfaces/IRules";
 import Reserve, { IReserveMeta } from "./Reserve";
 import { divide } from "./Utils";
 import Vault, { IVaultMeta } from "./Vault";
+import { IPhaseName } from "./BlockchainRunner";
 
 dayjs.extend(utc);
 
@@ -14,7 +15,8 @@ export const MAXIMUM_PRICE = 1.00;
 export const DEFAULT_PRICE = 1.00;
 
 export default class Marker {
-  public idx = Marker.generateIdx();
+  public idx: number = 0;
+  public phase: IPhaseName = 'launch';
   public startingDate: Dayjs;
   public durationInHours: number;
   public showPointOnChart: boolean = false;
@@ -428,7 +430,8 @@ export default class Marker {
       argonLoss = priceDiff * circulation;
     }
     return {
-      id: this.idx,
+      idx: this.idx,
+      phase: this.phase,
       blockCount: this.blockCount,
       startingDate: this.startingDate.toISOString(),
       endingDate: this.endingDate.toISOString(),
@@ -482,7 +485,7 @@ export default class Marker {
     return divide(endingPrice - startingPrice, startingPrice);
   }
 
-  private static calculateWageProtectedPrice(micropaymentAmount: number, priceAsRatio: number): number {
+  public static calculateWageProtectedPrice(micropaymentAmount: number, priceAsRatio: number): number {
     const inflationIndex = this.calculateInflationIndex(priceAsRatio);
     if (inflationIndex <= 100) {
       return micropaymentAmount;
@@ -493,21 +496,6 @@ export default class Marker {
 
   private static calculateInflationIndex(priceAsRatio: number): number {
     return 100 * (1 + divide(1 - priceAsRatio, priceAsRatio));
-  }
-
-  public static lastIdx: number | null = null;
-
-  public static resetIdx() {
-    this.lastIdx = null;
-  }
-
-  public static generateIdx(): number {
-    if (this.lastIdx === null) {
-      this.lastIdx = 0;
-    } else {
-      this.lastIdx++;
-    }
-    return this.lastIdx;
   }
 
   public static merge(markers: Marker[]) {
@@ -553,7 +541,8 @@ export default class Marker {
 } 
 
 export interface IMarkerJson {
-  id: number;
+  idx: number;
+  phase: IPhaseName;
   blockCount: number;
   durationInHours: number;
   showPointOnChart: boolean;

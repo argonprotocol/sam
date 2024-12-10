@@ -9,7 +9,12 @@
 <style lang="scss" scoped>
 [StatusText] {
   transform: translateY(-50%);
-  animation: textPulse 1s infinite;
+  animation: textPulse 1s infinite, fadein 1.5s;
+}
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes textPulse {

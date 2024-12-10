@@ -14,6 +14,8 @@
     <WelcomeOverlay />
     <InsightOverlay />
     <TooltipOverlay />
+    <VideoOverlay />
+    <WhitepapersOverlay />
   </div>
 </template>
 
@@ -22,6 +24,8 @@ import * as Vue from 'vue';
 import InsightOverlay from './overlays/InsightOverlay.vue';
 import WelcomeOverlay from './overlays/WelcomeOverlay.vue';
 import TooltipOverlay from './overlays/TooltipOverlay.vue';
+import VideoOverlay from './overlays/VideoOverlay.vue';
+import WhitepapersOverlay from './overlays/WhitepapersOverlay.vue';
 import { storeToRefs } from 'pinia'
 import Header from './components/Header.vue';
 // import Tour from './panels/Tour.vue';
@@ -32,7 +36,7 @@ import { useBasicStore } from './store';
 import emitter from './emitters/basic';
 
 const basicStore = useBasicStore();
-const { isReady, isLoading, isRunning, completedWelcome, tourStep } = storeToRefs(basicStore);
+const { completedWelcome, tourStep, isLoading, isRunning, isReady } = storeToRefs(basicStore);
 
 const windowWidth = Vue.ref(window.innerWidth);
 
@@ -48,5 +52,5 @@ Vue.onMounted(() => {
 
 const isTooNarrow = Vue.computed(() => windowWidth.value < 1224);
 
-basicStore.loadData();
+basicStore.load();
 </script>

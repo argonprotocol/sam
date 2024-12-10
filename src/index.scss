@@ -23,3 +23,10 @@ $themeColor: #86198f;
 .vue-slider-mark-label {
   @apply text-sm text-gray-400;
 }
+
+body.isGrabbing {
+  cursor: grabbing !important;
+  div, svg {
+    cursor: grabbing !important;
+  }
+}

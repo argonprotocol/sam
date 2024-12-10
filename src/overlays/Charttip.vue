@@ -17,47 +17,58 @@
             <th colspan="3" class="text-left">{{ dayjs.utc(item.startingDate).format('MMMM D, YYYY') }}</th>
           </tr>
         </thead>
-        <tbody class="align-middle">
-            <tr>
-              <td class="text-left opacity-50">Value of Argon</td>
-              <td class="text-right font-bold">{{ formatPrice(endingPrice) }}</td>
-              <td>
-                <span v-if="priceDiff" class="font-normal relative" :class="priceDiff > 0 ? 'text-green-700' : 'text-red-500'">
-                  <span class="font-light">(</span><span class="font-bold">{{priceDiff > 0 ? '+' : '' }}{{ addCommas(priceDiff) }}%<span class="font-light">)</span></span>
-                </span>
-                <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
-              </td>
-            </tr>
-            <tr>
-              <td class="text-left opacity-50">Bitcoins In Vault</td>
-              <td class="text-right font-bold">{{ formatShorthandNumber(endingBitcoinsVaulted, { mantissa: 2 }) }}</td>
-              <td>
-                <span v-if="bitcoinDiff" class="font-normal relative" :class="bitcoinDiff > 0 ? 'text-green-700' : 'text-red-500'">
-                  <span class="font-light">(</span><span class="font-bold">{{bitcoinDiff > 0 ? '+' : '' }}{{ addCommas(bitcoinDiff) }}%<span class="font-light">)</span></span>
-                </span>
-                <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
-              </td>
-            </tr>
-            <tr>
-              <td class="text-left opacity-50">Circulation Supply</td>
-              <td class="text-right font-bold">{{ formatShorthandNumber(endingCirculation) }}</td>
-              <td>
-                <span v-if="circulationDiff" class="font-normal relative" :class="circulationDiff > 0 ? 'text-green-700' : 'text-red-500'">
-                  <span class="font-light">(</span><span class="font-bold">{{circulationDiff > 0 ? '+' : '' }}{{ addCommas(circulationDiff) }}%<span class="font-light">)</span></span>
-                </span>
-                <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
-              </td>
-            </tr>
-            <tr>
-              <td class="text-left opacity-50">Capital Demand</td>
-              <td class="text-right font-bold">{{ formatShorthandNumber(endingCapital) }}</td>
-              <td>
-                <span v-if="capitalDiff" class="font-normal relative" :class="capitalDiff > 0 ? 'text-green-700' : 'text-red-500'">
-                  <span class="font-light">(</span><span class="font-bold">{{capitalDiff > 0 ? '+' : '' }}{{ addCommas(capitalDiff) }}%<span class="font-light">)</span></span>
-                </span>
-                <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
-              </td>
-            </tr>
+        <tbody class="align-middle" v-if="config.datasetIndex === 0">
+          <tr>
+            <td class="text-left opacity-50">Value of Argon</td>
+            <td class="text-right font-bold">{{ formatPrice(endingPrice) }}</td>
+            <td>
+              <span v-if="priceDiff" class="font-normal relative" :class="priceDiff > 0 ? 'text-green-700' : 'text-red-500'">
+                <span class="font-light">(</span><span class="font-bold">{{priceDiff > 0 ? '+' : '' }}{{ addCommas(priceDiff) }}%<span class="font-light">)</span></span>
+              </span>
+              <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left opacity-50">Bitcoins In Vault</td>
+            <td class="text-right font-bold">{{ formatShorthandNumber(endingBitcoinsVaulted, { mantissa: 2 }) }}</td>
+            <td>
+              <span v-if="bitcoinDiff" class="font-normal relative" :class="bitcoinDiff > 0 ? 'text-green-700' : 'text-red-500'">
+                <span class="font-light">(</span><span class="font-bold">{{bitcoinDiff > 0 ? '+' : '' }}{{ addCommas(bitcoinDiff) }}%<span class="font-light">)</span></span>
+              </span>
+              <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left opacity-50">Circulation Supply</td>
+            <td class="text-right font-bold">{{ formatShorthandNumber(endingCirculation) }}</td>
+            <td>
+              <span v-if="circulationDiff" class="font-normal relative" :class="circulationDiff > 0 ? 'text-green-700' : 'text-red-500'">
+                <span class="font-light">(</span><span class="font-bold">{{circulationDiff > 0 ? '+' : '' }}{{ addCommas(circulationDiff) }}%<span class="font-light">)</span></span>
+              </span>
+              <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left opacity-50">Capital Demand</td>
+            <td class="text-right font-bold">{{ formatShorthandNumber(endingCapital) }}</td>
+            <td>
+              <span v-if="capitalDiff" class="font-normal relative" :class="capitalDiff > 0 ? 'text-green-700' : 'text-red-500'">
+                <span class="font-light">(</span><span class="font-bold">{{capitalDiff > 0 ? '+' : '' }}{{ addCommas(capitalDiff) }}%<span class="font-light">)</span></span>
+              </span>
+              <span v-else class="font-bold text-slate-400"><span class="font-light">(</span>0%<span class="font-light">)</span></span>
+            </td>
+          </tr>
+        </tbody>
+        <tbody class="align-middle" v-else>
+          <tr>
+            <td colspan="2" class="text-left opacity-50">Change In USD Value: </td>
+            <td>
+              <span v-if="dollarDiff" class="font-normal relative" :class="dollarDiff > 0 ? 'text-green-700' : 'text-red-500'">
+                <span class="font-bold">{{dollarDiff > 0 ? '+' : '' }}{{ addCommas(dollarDiff) }}%</span>
+              </span>
+              <span v-else class="font-bold text-slate-400">0%</span>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -77,7 +88,7 @@ const props = defineProps<{
   config: any
 }>();
 
-const item = Vue.ref(props.config.item);
+const item = Vue.ref({});
 
 const arrowRef: Vue.Ref<HTMLElement | null> = Vue.ref(null);
 const boxRef: Vue.Ref<HTMLElement | null> = Vue.ref(null);
@@ -94,6 +105,9 @@ const circulationDiff = Vue.ref(0);
 
 const endingCapital = Vue.ref(item.value.endingCapital || 0);
 const capitalDiff = Vue.ref(0);
+
+const endingDollarValue = Vue.ref(item.value.dollar?.endingPrice || 0);
+const dollarDiff = Vue.ref(0);
 
 function updateBoxPosition() {
   const arrowRect = arrowRef.value?.getBoundingClientRect() || { left: 0};
@@ -152,6 +166,10 @@ function updateItemsDiffs() {
   if (capitalDiff.value > 1_000) {
     capitalDiff.value = 1_000;
   }
+
+  const startingDollarValue = 1.00;
+  endingDollarValue.value = Math.min(item.value.dollar.endingPrice, 1.00);
+  dollarDiff.value = formatChangePct((endingDollarValue.value - startingDollarValue) / startingDollarValue);
 }
 
 </script>

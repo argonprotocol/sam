@@ -13,6 +13,8 @@ dayjs.extend(utc);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
+export type IPhaseName = 'launch' | 'collapse' | 'recovery' | 'collapsingRecovery' | 'collapsedForever' | 'regrowth';
+
 interface IPhaseIndexes {
   launch?: { firstItem: number, lastItem: number };
   collapse?: { firstItem: number, lastItem: number };
@@ -32,6 +34,7 @@ export const MILLIS_PER_HOUR = 60 * 60 * 1000; // milliseconds in one hour
 
 export default class BlockchainRunner {
   private markers: Marker[] = [];
+  private lastMarkerIdx: number | null = null;
 
   private phaseIndexes: IPhaseIndexes = {};
 
@@ -74,9 +77,9 @@ export default class BlockchainRunner {
     this.maxRecentMarkers = Math.max(Math.round(rules.speculativeLatencyHigh/24), Math.round(rules.certaintyLatencyHigh/24)) || 1;
   }
 
-  public onMarkers: (markers: IMarkerJson[]) => void = () => {};
+  public onMarkers: undefined | ((markers: IMarkerJson[]) => void);
 
-  public async runCollapseThenRecover(): Promise<{ markers: IMarkerJson[], phases: IPhaseIndexes }> {
+  public runCollapseThenRecover(): { markers: IMarkerJson[], phases: IPhaseIndexes } {
     this.reset();
     this.runStart();
 
@@ -98,6 +101,8 @@ export default class BlockchainRunner {
     while (daysFlatlined < 20 && currentDate.isBefore(dayjs.utc(MUST_END_BEFORE_DATE))) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
 
+      marker.idx = this.generateMarkerIdx();
+      marker.phase = 'recovery';
       marker.setAnnualTransactions(this.rules.transactionsAnnually);
       marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
 
@@ -110,21 +115,21 @@ export default class BlockchainRunner {
         throw new Error('No starting circulation');
       }
 
-      this.addMarker(marker);
-
       (firstMarker ??= marker).showPointOnChart = true;
+      this.addMarker(marker);
 
       currentDate = marker.nextDate;
       currentCirculation = marker.currentCirculation;
       currentCapital = marker.currentCapital;
 
       const isAfterDesiredDate = currentDate.isAfter(dayjs.utc(DEFAULT_ENDING_DATE));
-      if (isAfterDesiredDate && marker.currentPrice <= this.markers[this.markers.length - 20].startingPrice) {
+      const hasNotChangedInTwentyDays = this.markers.length >= 20 && marker.currentPrice <= this.markers[this.markers.length - 20].startingPrice;
+      if (isAfterDesiredDate && hasNotChangedInTwentyDays) {
         log(`Recovery stopped at ${currentDate} because there is no hope of recovery`);
         break;
       }
 
-      if (marker.startingCapital >= 1.00 && marker.currentPrice >= 1.00) {
+      if (marker.startingPrice >= 1.00 && marker.currentPrice >= 1.00) {
         daysFlatlined++;
       } else {
         daysFlatlined = 0;
@@ -142,7 +147,7 @@ export default class BlockchainRunner {
     this.latestMarker.showPointOnChart = true;
 
     return {
-      markers: this.markers.map((m: Marker) => m.toJson()),
+      markers: this.markersPending.map((m: Marker) => m.toJson()),
       phases: this.phaseIndexes,
     };
   }
@@ -161,8 +166,9 @@ export default class BlockchainRunner {
     const afterTerra = this.implementTerraCollapse(lastStartMarker.currentPrice, lastStartMarker.nextDate, (marker) => {
       marker.runRecovery(this.rules, this.markers, this.vault);
       marker.manageSeigniorageProfits(this.rules, this.reserve);
-      this.addMarker(marker);
+
       (firstMarker ??= marker).showPointOnChart = true;
+      this.addMarker(marker);
     });
 
     // Recovery phase /////////
@@ -175,6 +181,8 @@ export default class BlockchainRunner {
     while (daysFlatlined < 20 && currentDate.isBefore(dayjs.utc(MUST_END_BEFORE_DATE))) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
 
+      marker.idx = this.generateMarkerIdx();
+      marker.phase = 'recovery';
       marker.setAnnualTransactions(this.rules.transactionsAnnually);
       marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
 
@@ -183,15 +191,18 @@ export default class BlockchainRunner {
       marker.manageSeigniorageProfits(this.rules, this.reserve);
       marker.runDisabledMechanisms(this.rules, false);
 
-      this.addMarker(marker);
-
       (firstRecoveredMarker ??= marker).showPointOnChart = true;
+      if (marker.startingPrice < 1.00 && marker.currentPrice >= 1.00) {
+        marker.showPointOnChart = true;
+      }
+
+      this.addMarker(marker);
 
       currentDate = marker.nextDate;
       currentCirculation = marker.currentCirculation;
       currentCapital = marker.currentCapital;
 
-      if (marker.startingCapital >= 1.00 && marker.currentPrice >= 1.00) {
+      if (marker.startingPrice >= 1.00 && marker.currentPrice >= 1.00) {
         daysFlatlined++;
       } else {
         daysFlatlined = 0;
@@ -209,12 +220,12 @@ export default class BlockchainRunner {
     this.latestMarker.showPointOnChart = true;
 
     return {
-      markers: this.markers.map((m: Marker) => m.toJson()),
+      markers: this.markersPending.map((m: Marker) => m.toJson()),
       phases: this.phaseIndexes,
     };
   }
 
-  public runCollapseForever(): { markers: IMarkerJson[], phases: IPhaseIndexes } {
+  public runCollapsedForever(): { markers: IMarkerJson[], phases: IPhaseIndexes } {
     this.reset();
     this.runStart();
 
@@ -232,13 +243,16 @@ export default class BlockchainRunner {
 
     while (currentDate.isSameOrBefore(dayjs.utc(DEFAULT_ENDING_DATE))) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
-      this.addMarker(marker);
+
+      marker.idx = this.generateMarkerIdx();
+      marker.phase = 'collapsedForever';
       marker.setAnnualTransactions(this.rules.transactionsAnnually);
       marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
       marker.setVaultAndReserve(this.vault, this.reserve);
       marker.runDisabledMechanisms(this.rules, true);
 
       (firstMarker ??= marker).showPointOnChart = true;
+      this.addMarker(marker);
 
       currentDate = marker.nextDate;
       currentCirculation = marker.currentCirculation;
@@ -255,12 +269,23 @@ export default class BlockchainRunner {
     this.latestMarker.showPointOnChart = true;
 
     return {
-      markers: this.markers.map((m: Marker) => m.toJson()),
+      markers: this.markersPending.map((m: Marker) => m.toJson()),
       phases: this.phaseIndexes,
     };
   }
 
   // PRIVATE //////////////////////////////////////////////////////////////
+
+  private get latestMarker(): Marker {
+    return this.markers[this.markers.length - 1];
+  }
+
+  private get markersPending(): Marker[] {
+    if (this.onMarkers && this.emitEvery) {
+      return this.markers.slice(this.markers.length - this.emitsPending);
+    }
+    return this.markers;
+  }
 
   private runStart() {
     if (this.latestMarker) throw new Error('Already ran');
@@ -282,6 +307,8 @@ export default class BlockchainRunner {
       
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
 
+      marker.idx = this.generateMarkerIdx();
+      marker.phase = 'launch';
       marker.addCirculation(this.circulationToAddPerDay, 'TerraGrowth');
       marker.addCapital(this.capitalToAddPerDay, 'TerraGrowth');
       marker.setAnnualTransactions(annualTransactions);
@@ -294,9 +321,8 @@ export default class BlockchainRunner {
       marker.tryTaxation(this.rules);
       marker.manageSeigniorageProfits(this.rules, this.reserve);
 
-      this.addMarker(marker);
-
       (firstMarker ??= marker).showPointOnChart = true;
+      this.addMarker(marker);
 
       currentDate = marker.nextDate;
       currentCirculation = marker.currentCirculation;
@@ -313,8 +339,9 @@ export default class BlockchainRunner {
   }
 
   private runRegrowth(startingPrice: number, currentDate: Dayjs, currentCirculation: number) {
-    const tmpEndingDate = dayjs.utc(DEFAULT_ENDING_DATE);
-    const endingDate = currentDate.isBefore(tmpEndingDate) ? tmpEndingDate : currentDate.endOf('year');
+    const defaultEndingDate = dayjs.utc(DEFAULT_ENDING_DATE);
+    const endOfDecadeDate = currentDate.add(10 - (currentDate.year() % 10), 'year').endOf('year');
+    const endingDate = currentDate.isBefore(defaultEndingDate) ? defaultEndingDate : endOfDecadeDate;
 
     let annualTransactions = 0;
     let annualMicropayments = 0;
@@ -330,6 +357,9 @@ export default class BlockchainRunner {
       const circulationToAdd = Math.min(this.circulationToAddPerDay, this.circulationAtEndOfLaunchPhase - currentCirculation);
 
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
+
+      marker.idx = this.generateMarkerIdx();
+      marker.phase = 'regrowth';
       marker.addCirculation(circulationToAdd, 'TerraGrowth');
       marker.addCapital(capitalToAdd, 'TerraGrowth');
       marker.setAnnualTransactions(annualTransactions);
@@ -342,9 +372,8 @@ export default class BlockchainRunner {
       marker.tryTaxation(this.rules);
       marker.manageSeigniorageProfits(this.rules, this.reserve);
 
-      this.addMarker(marker);
-
       (firstMarker ??= marker).showPointOnChart = true;
+      this.addMarker(marker);
 
       currentDate = marker.nextDate;
       currentCirculation = marker.currentCirculation;
@@ -355,10 +384,6 @@ export default class BlockchainRunner {
       firstItem: firstMarker.idx,
       lastItem: this.latestMarker.idx,
     }
-  }
-
-  private get latestMarker(): Marker {
-    return this.markers[this.markers.length - 1];
   }
 
   private addMarker(marker: Marker) {
@@ -374,7 +399,7 @@ export default class BlockchainRunner {
     this.emitsPending++;
     
     if (this.onMarkers && this.emitEvery && this.emitsPending >= this.emitEvery) {
-      const markersToEmit = this.markers.slice(this.markers.length - this.emitsPending);
+      const markersToEmit = this.markersPending;
       this.onMarkers(markersToEmit.map((m: Marker) => m.toJson()));
       this.emitsPending = 0;
     }
@@ -385,11 +410,14 @@ export default class BlockchainRunner {
   }
 
   private runCollapse(startingPrice: number, startingDate: Dayjs) {
+    let firstCollapsingMarker: Marker;
+
     const afterTerra = this.implementTerraCollapse(startingPrice, startingDate, (marker) => {
+      (firstCollapsingMarker ??= marker).showPointOnChart = true;
       this.addMarker(marker);
     });
 
-    let firstMarker: Marker;
+    let firstCollapsedMarker: Marker;
     let currentDate = afterTerra.currentDate;
     let currentCirculation = afterTerra.currentCirculation;
     let currentCapital = afterTerra.currentCapital;
@@ -398,13 +426,16 @@ export default class BlockchainRunner {
     // Next days
     while (daysFlatlined < 20) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
-      this.addMarker(marker);
-      firstMarker ??= marker;
-      firstMarker.showPointOnChart = true;
+
+      marker.idx = this.generateMarkerIdx();
+      marker.phase = 'collapse';
       marker.setAnnualTransactions(this.rules.transactionsAnnually);
       marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
       marker.setVaultAndReserve(this.vault, this.reserve);
       marker.runDisabledMechanisms(this.rules, true);
+
+      (firstCollapsedMarker ??= marker).showPointOnChart = true;
+      this.addMarker(marker);
 
       currentDate = marker.nextDate;
       currentCirculation = marker.currentCirculation;
@@ -412,7 +443,7 @@ export default class BlockchainRunner {
       daysFlatlined++;
     }
     this.phaseIndexes.collapse = {
-      firstItem: firstMarker.idx,
+      firstItem: firstCollapsingMarker.idx,
       lastItem: this.latestMarker.idx,
     };
   }
@@ -433,6 +464,8 @@ export default class BlockchainRunner {
 
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
 
+      marker.idx = this.generateMarkerIdx();
+      marker.phase = 'collapse';
       marker.setAnnualTransactions(this.rules.transactionsAnnually);
       marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
 
@@ -460,6 +493,15 @@ export default class BlockchainRunner {
 
   private reset() {
     this.markers = [];
-    Marker.resetIdx();
+    this.lastMarkerIdx = null;
+  }
+
+  public generateMarkerIdx(): number {
+    if (this.lastMarkerIdx === null) {
+      this.lastMarkerIdx = 0;
+    } else {
+      this.lastMarkerIdx++;
+    }
+    return this.lastMarkerIdx;
   }
 }

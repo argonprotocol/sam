@@ -1,23 +1,19 @@
 <template>
   <div Wrapper class="grow h-full flex flex-col relative top-1.5">
     <div class="absolute w-full h-full">
+      <ChartSelector v-if="shadowSelector.isActive" :defaultMarkerOpacity="0" :config="shadowSelector" :helpers="{ getPointPosition, getItem, getLastItem }" class="opacity-60" />
+      <ChartSelector :defaultMarkerOpacity="defaultMarkerOpacity" :config="mainSelector" :helpers="{ getPointPosition, getItem, getLastItem }" @move="onChartSelectorMove" @openPlayer="openPlayer" />
       <slot />
-      <Charttip :config="tooltipConfig" />
-      <ChartMarker direction="left" :config="chartMarkerLeft" />
-      <ChartMarker direction="right" :config="chartMarkerRight" />
-      
-      <div ShadowSelection v-if="shadowSelector.isActive" class="absolute -top-[10px] bottom-[79px] cursor-pointer border-[6px] rounded border-[#BCC1D8] z-[60]" :style="`left: ${shadowSelector.left}px; width: ${shadowSelector.width}px`">
-        <div ShadowSelectionBg></div>
-      </div>
+      <Charttip :config="tooltipConfig" v-if="!hideTooltip" />
     </div>
 
-    <div ChartWrapper class="grow relative w-full z-10">
+    <div ChartWrapper :class="props.isRunning ? 'pointer-events-none' : ''" class="grow relative w-full z-10">
       <canvas id="MyChart" ref="chartRef"></canvas>
     </div>
 
     <div v-if="markerPos.show" StartMarker class="MARKER cursor-pointer" :style="`left: ${markerPos.left}px; top: ${markerPos.top}px`"></div>
 
-    <XAxis :phases="xAxisPhases" @phaseenter="onPhaseEnter" @phaseleave="onPhaseLeave" endingYear="2025" :loadPct="loadPct" class="relative mb-4 mx-4 -top-1.5" />
+    <XAxis :phases="xAxisPhases" @phaseenter="onPhaseEnter" @phaseleave="onPhaseLeave" @phaseclick="onPhaseClick" :endingYear="endingYear" :loadPct="loadPct" :getPointPosition="getPointPosition" class="relative mb-4 mx-4 -top-0.5" />
   </div>
 </template>
 
@@ -29,30 +25,29 @@ import { Chart, LineController, LineElement, PointElement, LinearScale, Category
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import XAxis from '../components/XAxis.vue';
 import Charttip from '../overlays/Charttip.vue';
-import ChartMarker from '../overlays/ChartMarker.vue';
-import { createChartOptions } from '../lib/ChartOptions';
+import ChartSelector from '../components/ChartSelector.vue';
+import { createChartOptions, CHART_X_MAX } from '../lib/ChartOptions';
+import emitter from '../emitters/basic';
 
 dayjs.extend(dayjsUtc);
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, TimeScale, Tooltip);
 
 const props = defineProps<{ 
   xAxisPhases: any[],
+  endingYear?: number,
   isRunning?: boolean,
+  hideTooltip?: boolean,
 }>();
 
-const emit = defineEmits(['dragging'])
+const emit = defineEmits(['dragging']);
 
-const shadowSelector = Vue.ref({ isActive: false, left: 0, width: 0 });
+const endingYear = Vue.computed(() => props.endingYear || 2025);
 
-function onPhaseEnter(event: any) {
-  shadowSelector.value.isActive = true;
-  shadowSelector.value.left = event.left;
-  shadowSelector.value.width = event.width;
-}
+const shadowSelector = Vue.ref({ firstIdx: 0, lastIdx: 0, isActive: false });
+const mainSelector = Vue.ref({ firstIdx: 0, lastIdx: 0 });
 
-function onPhaseLeave(event: any) {
-  shadowSelector.value.isActive = false;
-}
+const hideTooltip = Vue.ref(props.hideTooltip);
+const defaultMarkerOpacity: Vue.Ref<number> = Vue.ref(1);
 
 const totalDays = dayjs('2025-12-31').diff(dayjs('2020-10-01'), 'day');
 const loadPct = Vue.ref(0);
@@ -69,6 +64,52 @@ const pointItems: any[] = [];
 const dollarPoints: any[] = [];
 const dollarPointRadius: any[] = [];
 
+function onChartSelectorMove(events: any) {
+  const leftIdx = getItemIndexFromEvent(events.left);
+  const rightIdx = getItemIndexFromEvent(events.right);
+  mainSelector.value.firstIdx = leftIdx || 0;
+  mainSelector.value.lastIdx = rightIdx || 0;
+}
+
+function openPlayer({ firstIdx, lastIdx }: { firstIdx: number, lastIdx: number }) {
+  const items = getItems(firstIdx, lastIdx);
+  emitter.emit('openPlayer', { items });
+}
+
+function onPhaseEnter(event: MouseEvent) {
+  const phase = (event as any).phase;
+  shadowSelector.value.firstIdx = phase.firstItem.idx;
+  shadowSelector.value.lastIdx = phase.lastItem.idx;
+  shadowSelector.value.isActive = true;
+}
+
+function onPhaseLeave(event: any) {
+  shadowSelector.value.isActive = false;
+}
+
+function onPhaseClick(event: MouseEvent) {
+  const phase = (event as any).phase;
+  
+  let firstIdx = phase.firstItem.idx;
+  let lastIdx = phase.lastItem.idx;
+
+  if (event.shiftKey) {
+    if (firstIdx < mainSelector.value.firstIdx) {
+      lastIdx = mainSelector.value.lastIdx;
+    }
+    if (lastIdx > mainSelector.value.lastIdx) {
+      firstIdx = mainSelector.value.firstIdx;
+    }
+  }
+
+  setMainSelectorPos(firstIdx, lastIdx);
+}
+
+function setMainSelectorPos(firstIdx: number, lastIdx: number) {
+  mainSelector.value.firstIdx = firstIdx;
+  mainSelector.value.lastIdx = lastIdx;
+}
+
 function toggleDatasetVisibility(index: number, visible: boolean) {
   const dataset = chart?.data.datasets[index];
   if (dataset) {
@@ -80,6 +121,8 @@ function toggleDatasetVisibility(index: number, visible: boolean) {
 function clearPoints() {
   chartPoints.splice(0, chartPoints.length);
   pointRadius.splice(0, pointRadius.length);
+  // @ts-ignore
+  chart.options.scales.x.max = CHART_X_MAX;
   chart?.update();
 }
 
@@ -97,13 +140,17 @@ function addPoints(items: { startingDate: string, endingPrice: number, showPoint
     pointRadius.push(item.showPointOnChart ? 4 : 0);
     pointItems.push(item);
   }
-
+  
   pointRadius[pointRadius.length - 1] = 4;
 
   const daysLoaded = chartPoints.length / totalDays;
   loadPct.value = Math.round(daysLoaded * 100);
 
   if (!chart) return;
+  if (chartPoints[chartPoints.length - 1].x > CHART_X_MAX) {
+    // @ts-ignore
+    chart.options.scales.x.max = chartPoints[chartPoints.length - 1].x;
+  }
   chart.update();
 
   const dataset = chart.data.datasets[0];
@@ -148,7 +195,15 @@ function reloadData(items: any[], dollarData?: any[]) {
   dollarPointRadius[dollarPointRadius.length - 1] = 4;
 
   addPoints(items);
+
   chart.update();
+}
+
+function getPointPosition(index: number) {
+  const meta = chart?.getDatasetMeta(0);
+  const currentDataPoint = meta?.data[index];
+
+  return { x: currentDataPoint?.x || 0, y: currentDataPoint?.y || 0 };
 }
 
 function getItem(index: number) {
@@ -161,22 +216,63 @@ function getItems(startIndex: number, endIndex: number) {
   return pointItems.slice(startIndex, endIndex);
 }
 
+function getLastItem() {
+  return pointItems[pointItems.length - 1];
+}
+
+function getItemIndexFromEvent(event: MouseEvent) {
+  if (!chartRef.value) return;
+
+  const rect = chartRef.value.getBoundingClientRect();
+  const maxY = rect.height - rect.top;
+  const clientX = event.clientX;
+  const clientY = event.clientY;
+
+  const wrappedEvent = { 
+    chart: chart,
+    native: event,
+    offsetX: undefined,
+    offsetY: undefined,
+    type: event.type,
+    x: clientX,
+    y: Math.min(clientY, maxY),
+  };
+  const interactionItems = chart?.getElementsAtEventForMode(wrappedEvent as any, 'index', { intersect: false }, true) || [];
+  return interactionItems[0]?.index;
+}
+
+function turnOffTooltip(tooltipConfig: any) {
+  tooltipConfig.value.opacity = 0;
+  defaultMarkerOpacity.value = 1;
+}
+
+function turnOnTooltip(tooltipConfig: any, datasetIndex: number) {
+  tooltipConfig.value.opacity = 1;
+
+  if (datasetIndex === 0) {
+    defaultMarkerOpacity.value = 0.5;
+  }
+}
+
 function onTooltipFn(tooltip: TooltipModel<any>, closeIfItemMatchesThis?: any) {
   if (tooltipOpened.value) return;
   // Hide if no tooltip
   if (tooltip.opacity === 0 || !tooltip.dataPoints) {
-    tooltipConfig.value.opacity = 0;
+    turnOffTooltip(tooltipConfig);
     return;
   }
 
-  const pointIndex = tooltip.dataPoints[0].dataIndex;
+  const dataPoint = tooltip.dataPoints[0];
+  const pointIndex = dataPoint.dataIndex;
+  const datasetIndex = dataPoint.datasetIndex;
   const item = pointItems[pointIndex];
 
   if (closeIfItemMatchesThis === item) {
-    tooltipConfig.value.opacity = 0;
+    turnOffTooltip(tooltipConfig);
     return;
   }
 
+  tooltipConfig.value.datasetIndex = datasetIndex;
   tooltipConfig.value.item = item;
 
   // Set caret Position
@@ -186,7 +282,7 @@ function onTooltipFn(tooltip: TooltipModel<any>, closeIfItemMatchesThis?: any) {
     tooltipConfig.value.class = 'no-transform';
   }
 
-  tooltipConfig.value.opacity = 1;
+  turnOnTooltip(tooltipConfig, datasetIndex);
   tooltipConfig.value.left = tooltip.caretX;
   tooltipConfig.value.top = tooltip.caretY;
 }
@@ -235,9 +331,6 @@ function startDrag(event: ChartEvent) {
   document.addEventListener('mouseup', stopDrag);
 }
 
-const chartMarkerLeft = Vue.ref({ left: 0, top: 0, opacity: 0, item: {} as any });
-const chartMarkerRight = Vue.ref({ left: 0, top: 0, opacity: 0, item: {} as any });
-
 function onDrag(event: any) {
   if (!dragMeta.isDragging) return;
 
@@ -265,20 +358,6 @@ function onDrag(event: any) {
     item: leftToRight ? pointItems[endIndex] : pointItems[startIndex],
   }
 
-  chartMarkerLeft.value = {
-    left: left.x,
-    top: left.y,
-    opacity: 1,
-    item: left.item,
-  };
-
-  chartMarkerRight.value = {
-    left: right.x,
-    top: right.y,
-    opacity: 1,
-    item: right.item,
-  };
-
   // Emit the response back to the parent component
   emit('dragging', { left, right });
 }
@@ -295,6 +374,7 @@ const tooltipConfig = Vue.ref({
   left: 0,
   top: 0,
   item: {} as any,
+  datasetIndex: 0,
 });
 
 function startPulsing() {
@@ -318,7 +398,19 @@ Vue.onBeforeUnmount(() => {
   }
 });
 
-defineExpose({ addPoints, reloadData, startPulsing, stopPulsing, clearPoints, getItems, getItem, toggleDatasetVisibility });
+defineExpose({ 
+  addPoints, 
+  reloadData, 
+  startPulsing, 
+  stopPulsing, 
+  clearPoints, 
+  getItems, 
+  getItem, 
+  getLastItem, 
+  toggleDatasetVisibility,
+  getPointPosition,
+  setMainSelectorPos,
+});
 </script>
 
 <style lang="scss" scoped>
@@ -328,10 +420,6 @@ defineExpose({ addPoints, reloadData, startPulsing, stopPulsing, clearPoints, ge
   height: 10px;
   transform: translate(-50%, -50%);
   pointer-events: none;
-}
-
-[ShadowSelection] {
-  box-shadow: 1px 1px 1px 0 rgb(0 0 0), inset 1px 1px 1px 0 rgb(0 0 0);
 }
 
 .MARKER {

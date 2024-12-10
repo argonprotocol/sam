@@ -1,23 +1,20 @@
 import * as Vue from 'vue';
 import { defineStore } from 'pinia'
 import baseRules, { IRules } from './lib/RulesConfig';
-import BaseScenario from './lib/BaseScenario';
-import EngineWorker from './workers/engine.ts?worker';
-import DollarInflation from './engine/DollarInflation';
-import { get as getFromIdb, set as setToIdb, del as delFromIdb } from 'idb-keyval';
+import Engine from './lib/Engine';
+import { IMarkerJson } from './engine/Marker';
 
 export type IPanelName = 'tour' | 'runner' | 'base';
-export type IFilterName = 'collapsedForever' | 'collapseThenRecover' | 'collapsingRecovery';
+export type IFilterName = 'collapseThenRecover' | 'collapsedForever' | 'collapsingRecovery';
 
 const config = JSON.parse(sessionStorage.getItem('config') || '{}');
 const storedRules = JSON.parse(sessionStorage.getItem('rules') || 'null');
-const data: any = {};
-const worker = new EngineWorker();
+const initialRules = storedRules || baseRules;
 
 export const useBasicStore = defineStore('help', () => {
   const isLoading: Vue.Ref<boolean> = Vue.ref(true);
   const isRunning: Vue.Ref<boolean> = Vue.ref(config.isRunning || false);
-  const isReady = Vue.computed(() => !isLoading.value && !isRunning.value);
+  const isReady: Vue.ComputedRef<boolean> = Vue.computed(() => !isLoading.value && !isRunning.value);
 
   const needsRerun: Vue.Ref<boolean> = Vue.ref(false);
 
@@ -25,34 +22,22 @@ export const useBasicStore = defineStore('help', () => {
   const completedWelcome: Vue.Ref<boolean> = Vue.ref(config.completedWelcome || false);
 
   const selectedFilter: Vue.Ref<IFilterName> = Vue.ref(config.selectedFilter || 'collapseThenRecover');
-  const rules: Vue.Ref<IRules> = Vue.ref(storedRules || { ...baseRules });
-  
-  const pendingMarkers: Vue.Ref<any[]> = Vue.ref([]);
-  const simulationData: Vue.Ref<any> = Vue.ref({ markers: [], phases: {} });
+  const rules: Vue.Ref<IRules> = Vue.ref({ ...initialRules });
+
+  const incomingMarkers: Vue.Ref<IMarkerJson[]> = Vue.ref([]);
+  const simulationData: Vue.Ref<{ markers: IMarkerJson[], phases: any }> = Vue.ref({ markers: [], phases: {} });
   const dollarMarkers: Vue.Ref<any[]> = Vue.ref([]);
-  
-  worker.onmessage = (event) => {
-    simulationData.value.markers.push(...event.data.markers);
-    pendingMarkers.value.push(...event.data.markers);
-    if (event.data.isFinished) {
-      simulationData.value.phases = event.data.phases;
-      setConfig({ isRunning: false });
-      setToIdb('simulationData', JSON.stringify(simulationData.value));
-      console.log('FINISHED');
-    }
-    console.log('updated markers', simulationData.value.markers.length);
-  };
+
+  const engine = new Engine(isRunning, initialRules, selectedFilter, simulationData, incomingMarkers, dollarMarkers);
 
   function setConfig(data: any) {
     tourStep.value = data.tourStep ?? tourStep.value;
     completedWelcome.value = data.completedWelcome ?? completedWelcome.value;
-    isRunning.value = data.isRunning ?? isRunning.value;
     selectedFilter.value = data.selectedFilter ?? selectedFilter.value;
     
     sessionStorage.setItem('config', JSON.stringify({
       tourStep: tourStep.value,
       completedWelcome: completedWelcome.value,
-      isRunning: isRunning.value,
       selectedFilter: selectedFilter.value
     }));
   }
@@ -60,48 +45,36 @@ export const useBasicStore = defineStore('help', () => {
   function resetConfig() {
     sessionStorage.removeItem('config');
     sessionStorage.removeItem('rules');
-    delFromIdb('simulationData');
+    engine.reset();
   }
 
-  function runEngine() {
-    setConfig({ isRunning: true });
-    simulationData.value.markers = [];
-    simulationData.value.phases = {};
-    pendingMarkers.value = [];
-    needsRerun.value = false;
-    const rulesStr = JSON.stringify(rules.value);
-    sessionStorage.setItem('rules', rulesStr);
-    worker.postMessage({ rules: JSON.parse(rulesStr), emitEvery: 5 });
+  function rerunEngine() {
+    const stringifiedRules = JSON.stringify(rules.value);
+    sessionStorage.setItem('rules', stringifiedRules);
+    engine.rules = JSON.parse(stringifiedRules);
+    engine.reset();
+    engine.run(selectedFilter.value);
   }
   
   Vue.watch(rules, () => {
     needsRerun.value = true;
   }, { deep: true });
 
-  async function loadData() {
-    if (isRunning.value) {
-      runEngine();
-    } else {
-      const storedData = await getFromIdb('simulationData');
-      if (storedData) {
-        simulationData.value = JSON.parse(storedData);
-      } else {
-        data[selectedFilter.value] = data[selectedFilter.value] || await BaseScenario.get(selectedFilter.value);
-        simulationData.value = data[selectedFilter.value];
-      }
+  Vue.watch(() => selectedFilter.value, async () => {
+    isLoading.value = true;
+    await engine.setFilter(selectedFilter.value);
+    isLoading.value = false;
+  });
 
-      const markers = simulationData.value.markers;
-      const dollarInflation = new DollarInflation(rules.value);
-      dollarMarkers.value = dollarInflation.generateMarkersForRange(markers[0].startingDate, markers[markers.length - 1].endingDate);  
-    }
-  
+  async function load() {
+    await engine.start(selectedFilter.value);  
     isLoading.value = false;
   }
 
   return {
     isLoading,
-    isReady,
     isRunning,
+    isReady,
     tourStep,
     completedWelcome,
     selectedFilter, 
@@ -109,10 +82,10 @@ export const useBasicStore = defineStore('help', () => {
     simulationData,
     dollarMarkers,
     needsRerun,
-    pendingMarkers,
-    loadData,
+    incomingMarkers,
+    load,
     setConfig,
     resetConfig,
-    runEngine
+    rerunEngine
   }
 });

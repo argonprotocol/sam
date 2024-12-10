@@ -14,6 +14,7 @@
       <div class="py-3 text-left text-sm text-slate-500 font-light">
         
         <div v-if="id === 'bitcoinCoverage'" class="space-y-2">
+          <p>Bitcoins play a pivotal role in the Argon ecosystem with Burn Coverage being the most important. </p>
           <div class="border-b mb-2 pb-2 flex flex-row space-x-2">
             <div>Bitcoins {{ data.bitcoinChange < 0 ? 'Unlocked' : 'Added' }} Today: </div>
             <div>{{ addCommas(Math.round(Math.abs(data.bitcoinChange))) }}</div>
@@ -79,11 +80,11 @@
           <p>For more details see pages 12-14 of <em>Whitepaper #2</em>.</p>
         </div>
 
-        <div v-if="id === 'taxedMicropayments'" class="space-y-2">
+        <div v-if="id === 'annualMicropayments'" class="space-y-2">
           <p>This is circulation that has been removed using Argon's micropayments taxation mechanism.</p>
         </div>
 
-        <p v-if="id === 'taxedTransactions'" class="space-y-2">This is circulation that has been removed using Argon's transaction taxation mechanism.</p>
+        <p v-if="id === 'annualTransactions'" class="space-y-2">This is circulation that has been removed using Argon's transaction taxation mechanism.</p>
 
         <p v-if="id === 'terraCirculationIncrease'" class="space-y-2">Capital in the Argon has increased from $14B to $14.2B since yesterday.</p>
 

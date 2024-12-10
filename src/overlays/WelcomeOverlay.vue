@@ -37,7 +37,7 @@
                     <div class="text-lg text-fuchsia-600 group-hover:text-fuchsia-500 cursor-pointer pl-1 font-bold">
                       <PlayOutlined OutlineIcon class="w-6 h-6 inline-block relative top-[-1px]" />
                       <PlaySolid SolidIcon class="w-6 h-6 inline-block relative top-[-1px]" />
-                      <span class="inline-block underline decoration-dashed decoration-fuchsia-300/50 underline-offset-[6px] ml-2">Watch <em class="italic">The Antidote</em></span>
+                      <span class="inline-block underline decoration-dashed decoration-fuchsia-300/50 underline-offset-[6px] ml-2">Watch <em class="italic">The Intro Video</em></span>
                     </div>
                     <p class="text-sm text-gray-500 mx-20 mt-2 group-hover:text-fuchsia-900/60">
                       A short video from our founder on how Argon’s stabilization mechanisms alleviate the risk of death spirals.

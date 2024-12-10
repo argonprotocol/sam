@@ -112,11 +112,11 @@
 
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="bitcoinUnlocking" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
-                        <div class="flex-1 text-right pr-2 leading-5 opacity-20">Outflow From<br />Bitcoin Unlocking</div>
+                        <div class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From<br />Bitcoin Unlocking</div>
                         <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="formatAsBillions(item.circulationRemovedMap.BitcoinFusion || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
-                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Outflow From<br />Bitcoin Unlocking</div>
+                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Burning From<br />Bitcoin Unlocking</div>
                           <div class="bg-[#9765a8] w-28 flex items-center justify-center text-lg text-white font-semibold shadow">- ₳{{formatAsBillions(item.circulationRemovedMap.BitcoinFusion || 0)}}</div>
                           <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2"></div>
                         </div>
@@ -124,11 +124,11 @@
 
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="taxedMicropayments" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
-                        <div class="flex-1 text-right pr-2 leading-5 opacity-20">Outflow From<br />Micropayment Taxes</div>
+                        <div class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From<br />Micropayment Taxes</div>
                         <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="formatAsBillions(item.circulationRemovedMap.MicropaymentTaxes || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
-                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Outflow From<br />Micropayment Taxes</div>
+                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Burning From<br />Micropayment Taxes</div>
                           <div class="bg-[#9765a8] w-28 flex items-center justify-center text-lg text-white font-semibold shadow">- ₳{{formatAsBillions(item.circulationRemovedMap.MicropaymentTaxes || 0)}}</div>
                           <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2"></div>
                         </div>
@@ -136,11 +136,11 @@
 
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="taxedTransactions" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
-                        <div class="flex-1 text-right pr-2 leading-5 opacity-20">Outflow From<br />Peer-to-Peer Taxes</div>
+                        <div class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From<br />Peer-to-Peer Taxes</div>
                         <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="formatAsBillions(item.circulationRemovedMap.TransactionalTaxes || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
-                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Outflow From<br />Peer-to-Peer Taxes</div>
+                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Burning From<br />Peer-to-Peer Taxes</div>
                           <div class="bg-[#9765a8] w-28 flex items-center justify-center text-lg text-white font-semibold shadow">- ₳{{formatAsBillions(item.circulationRemovedMap.TransactionalTaxes || 0)}}</div>
                           <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2"></div>
                         </div>
@@ -148,7 +148,8 @@
 
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="terraCirculationIncrease" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
-                        <div class="flex-1 text-right pr-2 leading-5 opacity-20">{{formatAsBillions(item.circulationAddedMap.TerraGrowth || 0) !== '0' ? 'Inflow' : 'Outflow'}} From Terra's<br />Rising Popularity</div>
+                        <div v-if="formatAsBillions(item.circulationAddedMap.TerraGrowth || 0) !== '0'" class="flex-1 text-right pr-2 leading-5 opacity-20">Inflow From Terra's<br />Rising Popularity</div>
+                        <div v-else class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From Terra's<br />Stabilization Reserve</div>
                         <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="formatAsBillions(item.circulationAddedMap.TerraGrowth || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
@@ -157,7 +158,7 @@
                           <div HorizontalLine class="ArrowRight w-10 absolute top-1/2 -right-1 translate-x-full -translate-y-1/2"></div>
                         </div>
                         <div v-else-if="formatAsBillions(item.circulationRemovedMap.ReserveSpend || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
-                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Outflow From Terra's<br />Historical Model Data</div>
+                          <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Burning From Terra's<br />Stabilization Reserve</div>
                           <div class="bg-[#9765a8] w-28 flex items-center justify-center text-lg text-white font-semibold shadow">- ₳{{formatAsBillions(item.circulationRemovedMap.ReserveSpend || 0)}}</div>
                           <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2"></div>
                         </div>
@@ -197,10 +198,10 @@
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="speculativeGreed" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" align="right" class="absolute z-10 hidden group-hover:block -top-3 -right-3 border-[1.5px] border-l-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
                         <div class="w-28 flex items-center rounded-sm border border-sky-900/10 justify-center text-lg font-semibold text-slate-300">$0</div>
-                        <div class="flex-1 text-left pl-2 leading-5 opacity-20">Inflow From<br />Profit Speculation</div>
+                        <div class="flex-1 text-left pl-2 leading-5 opacity-20">Inflow From<br />Profit Speculators</div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -left-1 -translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="item.capitalAddedMap.SpeculativeGreed" class="absolute top-0 left-0 w-full h-full text-sm flex flex-row">
-                          <div class="flex-1 text-left pr-2 leading-5 text-slate-400">From Profit<br />Speculation</div>
+                          <div class="flex-1 text-left pr-2 leading-5 text-slate-400">From Profit<br />Speculators</div>
                           <div class="bg-[#668ACD] w-28 flex items-center justify-center text-lg text-white font-semibold shadow">+ ${{ formatAsBillions(item.capitalAddedMap.SpeculativeGreed || 0) }}</div>
                           <div HorizontalLine class="ArrowRight w-10 absolute top-1/2 -right-1 translate-x-full -translate-y-1/2"></div>
                         </div>
@@ -223,13 +224,15 @@
                         <div class="w-28 flex items-center rounded-sm border border-sky-900/10 justify-center text-lg font-semibold text-slate-300">
                           <span v-if="item.capitalRemovedMap.TerraCollapse">-</span><span v-else-if="item.capitalAddedMap.TerraGrowth">+</span> ${{formatAsBillions(item.capitalRemovedMap.TerraCollapse || item.capitalAddedMap.TerraGrowth || 0)}}
                         </div>
-                        <div class="flex-1 text-left pl-2 leading-5 opacity-20">{{ item.capitalRemovedMap.TerraCollapse ? 'Outflow' : 'Inflow' }} From Terra's<br />Rising Popularity</div>
+                        <div v-if="item.capitalRemovedMap.TerraCollapse" class="flex-1 text-left pl-2 leading-5 opacity-20">Outflow From Terra's<br />Historical Collapse</div>
+                        <div v-else class="flex-1 text-left pl-2 leading-5 opacity-20">Inflow From Terra's<br />Rising Popularity</div>
                         <div HorizontalLine class="ArrowRight w-10 absolute top-1/2 -left-3 -translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="item.capitalRemovedMap.TerraCollapse || item.capitalAddedMap.TerraGrowth" class="absolute top-0 left-0 w-full h-full text-sm flex flex-row">
                           <div class="bg-[#668ACD] w-28 flex items-center justify-center text-lg text-white font-semibold shadow">
                             <span v-if="item.capitalRemovedMap.TerraCollapse">-&nbsp;</span><span v-else-if="item.capitalAddedMap.TerraGrowth">+&nbsp;</span> ${{formatAsBillions(item.capitalRemovedMap.TerraCollapse || item.capitalAddedMap.TerraGrowth || 0)}}
                           </div>
-                          <div class="flex-1 text-left pl-2 leading-5 text-slate-400">{{ item.capitalRemovedMap.TerraCollapse ? 'Outflow' : 'Inflow' }} From Terra's<br />Rising Popularity</div>
+                          <div v-if="item.capitalRemovedMap.TerraCollapse" class="flex-1 text-left pl-2 leading-5 text-slate-400">Outflow From Terra's<br />Historical Collapse</div>
+                          <div v-else class="flex-1 text-left pl-2 leading-5 text-slate-400">Inflow From Terra's<br />Rising Popularity</div>
                           <div HorizontalLine v-if="item.capitalRemovedMap.TerraCollapse" class="ArrowRight w-10 absolute top-1/2 -left-3 -translate-x-full -translate-y-1/2"></div>
                           <div HorizontalLine v-else-if="item.capitalAddedMap.TerraGrowth" class="ArrowLeft w-10 absolute top-1/2 -left-1 -translate-x-full -translate-y-1/2"></div>
                         </div>

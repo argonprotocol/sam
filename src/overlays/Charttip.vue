@@ -10,8 +10,8 @@
       </svg>
     </div>
 
-    <div ref="boxRef" :style="`transform: translateX(${boxConfig.translateX}%)`" class="absolute left-0 bottom-[23px] z-0 whitespace-nowrap flex flex-col shadow-lg bg-white border border-slate-400/60 rounded-lg">
-      <table class="mx-3">
+    <div ref="boxRef" :style="`transform: translateX(${boxConfig.translateX}%)`" class="absolute left-0 bottom-[23px] px-3 z-0 whitespace-nowrap flex flex-col shadow-lg bg-white border border-slate-400/60 rounded-lg">
+      <table class="w-full">
         <thead>
           <tr>
             <th colspan="3" class="text-left">{{ dayjs.utc(item.startingDate).format('MMMM D, YYYY') }}</th>

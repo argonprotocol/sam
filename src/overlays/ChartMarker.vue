@@ -10,7 +10,7 @@
       </svg>
     </div>
 
-    <div :class="[boxLeftPos]" class="absolute -top-0 text-center translate-y-[-60%] z-0 whitespace-nowrap px-1 py-2 flex flex-col shadow-sm bg-white border border-slate-400/60 rounded">
+    <div :class="[boxLeftPos]" class="absolute -top-0 text-center translate-y-[-60%] z-0 whitespace-nowrap px-1 py-2 flex flex-col shadow-sm bg-white border border-slate-400/60 rounded select-none">
       <div class="font-bold border-b border-slate-300/60 px-3 pb-1 mb-1">{{ dayjs.utc(item.startingDate).format('MMMM D, YYYY') }}</div>
       <div class="text-slate-400  px-3">{{ formatPrice(currentPrice) }} for ₳1.00</div>
     </div>

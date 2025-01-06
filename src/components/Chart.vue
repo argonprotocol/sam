@@ -2,7 +2,7 @@
   <div Wrapper class="grow h-full flex flex-col relative top-1.5">
     <div class="absolute w-full h-full">
       <ChartSelector v-if="shadowSelector.isActive" :defaultMarkerOpacity="0" :config="shadowSelector" :helpers="{ getPointPosition, getItem, getLastItem }" class="opacity-60" />
-      <ChartSelector :defaultMarkerOpacity="defaultMarkerOpacity" :config="mainSelector" :helpers="{ getPointPosition, getItem, getLastItem }" @move="onChartSelectorMove" @openPlayer="openPlayer" />
+      <ChartSelector v-if="mainSelectorEnabled" :defaultMarkerOpacity="defaultMarkerOpacity" :config="mainSelector" :helpers="{ getPointPosition, getItem, getLastItem }" @move="onChartSelectorMove" @openPlayer="openPlayer" />
       <slot />
       <Charttip :config="tooltipConfig" v-if="!hideTooltip" />
     </div>
@@ -48,6 +48,7 @@ const mainSelector = Vue.ref({ firstIdx: 0, lastIdx: 0 });
 
 const hideTooltip = Vue.ref(props.hideTooltip);
 const defaultMarkerOpacity: Vue.Ref<number> = Vue.ref(1);
+const mainSelectorEnabled = Vue.ref(true);
 
 const totalDays = dayjs('2025-12-31').diff(dayjs('2020-10-01'), 'day');
 const loadPct = Vue.ref(0);
@@ -69,11 +70,11 @@ function onChartSelectorMove(events: any) {
   const rightIdx = getItemIndexFromEvent(events.right);
   mainSelector.value.firstIdx = leftIdx || 0;
   mainSelector.value.lastIdx = rightIdx || 0;
+  mainSelectorEnabled.value = true;
 }
 
 function openPlayer({ firstIdx, lastIdx }: { firstIdx: number, lastIdx: number }) {
-  const items = getItems(firstIdx, lastIdx);
-  emitter.emit('openPlayer', { items });
+  emitter.emit('openPlayer', { items: pointItems, firstIdx, lastIdx });
 }
 
 function onPhaseEnter(event: MouseEvent) {
@@ -108,6 +109,7 @@ function onPhaseClick(event: MouseEvent) {
 function setMainSelectorPos(firstIdx: number, lastIdx: number) {
   mainSelector.value.firstIdx = firstIdx;
   mainSelector.value.lastIdx = lastIdx;
+  mainSelectorEnabled.value = true;
 }
 
 function toggleDatasetVisibility(index: number, visible: boolean) {
@@ -385,17 +387,27 @@ function stopPulsing() {
   markerPos.value.show = false;
 }
 
+function onKeyDown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && event.shiftKey) {
+    mainSelectorEnabled.value = false;
+  }
+}
+
 Vue.onMounted(() => {
   if (chartRef.value) {
     const chartOptions = createChartOptions(chartPoints, pointRadius, dollarPoints, dollarPointRadius, onTooltipFn, onEventFn);
     chart = new Chart(chartRef.value, chartOptions as any);
   }
+
+  document.addEventListener('keydown', onKeyDown);
 });
 
 Vue.onBeforeUnmount(() => {
   if (chart) {
     chart.destroy();
   }
+
+  document.removeEventListener('keydown', onKeyDown);
 });
 
 defineExpose({ 

@@ -8,13 +8,13 @@
     </div>
     <div class="flex flex-row space-x-1 items-center divide-x-1 pr-4">
       <ul :class="[isRunning ? 'opacity-50' : 'opacity-100']" class="TOGGLE flex flex-row bg-[#E9EBF1] border border-[#b8b9bd] rounded mr-4 text-center text-slate-600" :disabled="!isReady" :isRunning="isRunning">
-        <li class="border-r border-slate-400" @click="saveFilter('collapseThenRecover')" :class="{ 'selected': selectedFilter === 'collapseThenRecover' }" insightId="argonRelativeToDollar" @mouseenter="showInsight" @mouseleave="hideInsight">
+        <li class="border-r border-slate-400" @click="saveFilter('collapseThenRecover')" :class="{ 'selected': selectedFilter === 'collapseThenRecover' }" insightId="collapseThenRecover" @mouseenter="showInsight" @mouseleave="hideInsight">
           <span>Argon Mechanisms Enabled After Collapse</span>
         </li>
-        <li class="border-r border-slate-400" @click="saveFilter('collapsedForever')" :class="{ 'selected': selectedFilter === 'collapsedForever' }">
+        <li class="border-r border-slate-400" @click="saveFilter('collapsedForever')" :class="{ 'selected': selectedFilter === 'collapsedForever' }" insightId="collapsedForever" align="right" @mouseenter="showInsight" @mouseleave="hideInsight">
           <span>Never Enabled</span>
         </li>
-        <li class="" @click="saveFilter('collapsingRecovery')" :class="{ 'selected': selectedFilter === 'collapsingRecovery' }">
+        <li class="" @click="saveFilter('collapsingRecovery')" :class="{ 'selected': selectedFilter === 'collapsingRecovery' }" insightId="collapsingRecovery" align="right" @mouseenter="showInsight" @mouseleave="hideInsight">
           <span>Always Enabled</span>
         </li>
       </ul>
@@ -34,7 +34,7 @@
         </div>
 
         <div class="px-1 cursor-pointer">
-          <div @click="openVideoOverlay" class="IconWrapper" @mouseenter="showTooltip($event, 'Watch Video')" @mouseleave="hideTooltip">
+          <div @click="openVideoOverlay()" class="IconWrapper" @mouseenter="showTooltip($event, 'Watch Video')" @mouseleave="hideTooltip">
             <PlayOutlined OutlineIcon class="w-[24px]" />
             <PlaySolid SolidIcon class="w-[24px]" />
           </div>
@@ -67,6 +67,8 @@ import PlaySolid from '@/assets/play-solid.svg';
 import { IFilterName, useBasicStore } from '../store';
 import MoreInfoMenu from './MoreInfoMenu.vue';
 import { showTooltip, hideTooltip } from '../lib/TooltipUtils';
+import { showInsight, hideInsight } from '../lib/InsightUtils';
+import emitter from '../emitters/basic';
 
 const basicStore = useBasicStore();
 const { selectedFilter, isReady, isRunning } = storeToRefs(basicStore);
@@ -78,6 +80,10 @@ function resetToDefault() {
 
 function saveFilter(filter: IFilterName) {
   basicStore.setConfig({ selectedFilter: filter });
+}
+
+function openVideoOverlay() {
+  emitter.emit('openVideoOverlay');
 }
 </script>
 

@@ -68,8 +68,8 @@ export default class BlockchainRunner {
     const terraCollapseDate = dayjs.utc(TERRA_COLLAPSE_DATE);
     const lengthInDays = terraCollapseDate.diff(terraLaunchDate, 'days');
 
-    this.annualTransactionsToAddPerDay = divide(rules.transactionsAnnually, lengthInDays);
-    this.annualMicropaymentsToAddPerDay = divide(rules.micropaymentsAnnually, lengthInDays);
+    this.annualTransactionsToAddPerDay = divide(rules.maxTransactionsAnnually, lengthInDays);
+    this.annualMicropaymentsToAddPerDay = divide(rules.maxMicropaymentsAnnually, lengthInDays);
 
     this.circulationToAddPerDay = divide(rules.circulation, lengthInDays);
     this.capitalToAddPerDay = this.circulationToAddPerDay * startingPrice;
@@ -100,11 +100,13 @@ export default class BlockchainRunner {
 
     while (daysFlatlined < 20 && currentDate.isBefore(dayjs.utc(MUST_END_BEFORE_DATE))) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
+      const circulationPercentOfMax = divide(currentCirculation, this.rules.circulation);
+      const transactionsToSetAnnually = this.rules.maxTransactionsAnnually * circulationPercentOfMax;
 
       marker.idx = this.generateMarkerIdx();
       marker.phase = 'recovery';
-      marker.setAnnualTransactions(this.rules.transactionsAnnually);
-      marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
+      marker.setAnnualTransactions(transactionsToSetAnnually);
+      marker.setAnnualMicropayments(this.rules.maxMicropaymentsAnnually);
 
       marker.setReserve(this.reserve);
       marker.runRecovery(this.rules, this.markers, this.vault);
@@ -180,11 +182,13 @@ export default class BlockchainRunner {
 
     while (daysFlatlined < 20 && currentDate.isBefore(dayjs.utc(MUST_END_BEFORE_DATE))) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
-
+      const circulationPercentOfMax = divide(currentCirculation, this.rules.circulation);
+      const transactionsToSetAnnually = this.rules.maxTransactionsAnnually * circulationPercentOfMax;
+      
       marker.idx = this.generateMarkerIdx();
       marker.phase = 'recovery';
-      marker.setAnnualTransactions(this.rules.transactionsAnnually);
-      marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
+      marker.setAnnualTransactions(transactionsToSetAnnually);
+      marker.setAnnualMicropayments(this.rules.maxMicropaymentsAnnually);
 
       marker.runRecovery(this.rules, this.markers, this.vault);
       marker.setReserve(this.reserve);
@@ -243,11 +247,13 @@ export default class BlockchainRunner {
 
     while (currentDate.isSameOrBefore(dayjs.utc(DEFAULT_ENDING_DATE))) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
-
+      const circulationPercentOfMax = divide(currentCirculation, this.rules.circulation);
+      const transactionsToSetAnnually = this.rules.maxTransactionsAnnually * circulationPercentOfMax;
+      
       marker.idx = this.generateMarkerIdx();
       marker.phase = 'collapsedForever';
-      marker.setAnnualTransactions(this.rules.transactionsAnnually);
-      marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
+      marker.setAnnualTransactions(transactionsToSetAnnually);
+      marker.setAnnualMicropayments(this.rules.maxMicropaymentsAnnually);
       marker.setVaultAndReserve(this.vault, this.reserve);
       marker.runDisabledMechanisms(this.rules, true);
 
@@ -293,8 +299,8 @@ export default class BlockchainRunner {
     const startOnDate = dayjs.utc(TERRA_LAUNCH_DATE);
     const endBeforeDate = dayjs.utc(TERRA_COLLAPSE_DATE);
 
-    let annualTransactions = 0;
-    let annualMicropayments = 0;
+    let maxTransactionsAnnually = 0;
+    let maxMicropaymentsAnnually = 0;
 
     let firstMarker: Marker;
     let currentDate = startOnDate;
@@ -302,17 +308,19 @@ export default class BlockchainRunner {
     let currentCapital = 0;
 
     while (currentDate.isBefore(endBeforeDate)) {
-      annualTransactions += this.annualTransactionsToAddPerDay;
-      annualMicropayments += this.annualMicropaymentsToAddPerDay;
+      maxTransactionsAnnually += this.annualTransactionsToAddPerDay;
+      maxMicropaymentsAnnually += this.annualMicropaymentsToAddPerDay;
       
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
+      const circulationPercentOfMax = divide(currentCirculation, this.rules.circulation);
+      const transactionsToSetAnnually = Math.min(this.rules.maxTransactionsAnnually * circulationPercentOfMax, maxTransactionsAnnually);
 
       marker.idx = this.generateMarkerIdx();
       marker.phase = 'launch';
       marker.addCirculation(this.circulationToAddPerDay, 'TerraGrowth');
       marker.addCapital(this.capitalToAddPerDay, 'TerraGrowth');
-      marker.setAnnualTransactions(annualTransactions);
-      marker.setAnnualMicropayments(annualMicropayments);
+      marker.setAnnualTransactions(transactionsToSetAnnually);
+      marker.setAnnualMicropayments(maxMicropaymentsAnnually);
       
       marker.setVaultAndReserve(this.vault, this.reserve);
       this.vault.loadForDate(marker.currentCirculation, currentDate, this.rules);
@@ -343,27 +351,29 @@ export default class BlockchainRunner {
     const endOfDecadeDate = currentDate.add(10 - (currentDate.year() % 10), 'year').endOf('year');
     const endingDate = currentDate.isBefore(defaultEndingDate) ? defaultEndingDate : endOfDecadeDate;
 
-    let annualTransactions = 0;
-    let annualMicropayments = 0;
+    let maxTransactionsAnnually = 0;
+    let maxMicropaymentsAnnually = 0;
 
     let firstMarker: Marker;
     let currentCapital = Marker.calculateCapitalFromCirculationAndPrice(currentCirculation, startingPrice);
 
     while (currentDate.isSameOrBefore(endingDate)) {
-      annualTransactions = Math.min(annualTransactions + this.annualTransactionsToAddPerDay, this.rules.transactionsAnnually);
-      annualMicropayments = Math.min(annualMicropayments + this.annualMicropaymentsToAddPerDay, this.rules.micropaymentsAnnually);
+      maxTransactionsAnnually = Math.min(maxTransactionsAnnually + this.annualTransactionsToAddPerDay, this.rules.maxTransactionsAnnually);
+      maxMicropaymentsAnnually = Math.min(maxMicropaymentsAnnually + this.annualMicropaymentsToAddPerDay, this.rules.maxMicropaymentsAnnually);
 
       const capitalToAdd = Math.min(this.capitalToAddPerDay, this.capitalAtEndOfLaunchPhase - currentCapital);
       const circulationToAdd = Math.min(this.circulationToAddPerDay, this.circulationAtEndOfLaunchPhase - currentCirculation);
 
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
+      const circulationPercentOfMax = divide(currentCirculation, this.rules.circulation);
+      const transactionsToSetAnnually = Math.min(this.rules.maxTransactionsAnnually * circulationPercentOfMax, maxTransactionsAnnually);
 
       marker.idx = this.generateMarkerIdx();
       marker.phase = 'regrowth';
       marker.addCirculation(circulationToAdd, 'TerraGrowth');
       marker.addCapital(capitalToAdd, 'TerraGrowth');
-      marker.setAnnualTransactions(annualTransactions);
-      marker.setAnnualMicropayments(annualMicropayments);
+      marker.setAnnualTransactions(transactionsToSetAnnually);
+      marker.setAnnualMicropayments(maxMicropaymentsAnnually);
 
       marker.setVaultAndReserve(this.vault, this.reserve);
       this.vault.loadForDate(marker.currentCirculation, currentDate, this.rules);
@@ -426,11 +436,13 @@ export default class BlockchainRunner {
     // Next days
     while (daysFlatlined < 20) {
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
+      const circulationPercentOfMax = divide(currentCirculation, this.rules.circulation);
+      const transactionsToSetAnnually = Math.min(this.rules.maxTransactionsAnnually * circulationPercentOfMax);
 
       marker.idx = this.generateMarkerIdx();
       marker.phase = 'collapse';
-      marker.setAnnualTransactions(this.rules.transactionsAnnually);
-      marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
+      marker.setAnnualTransactions(transactionsToSetAnnually);
+      marker.setAnnualMicropayments(this.rules.maxMicropaymentsAnnually);
       marker.setVaultAndReserve(this.vault, this.reserve);
       marker.runDisabledMechanisms(this.rules, true);
 
@@ -463,11 +475,13 @@ export default class BlockchainRunner {
       }
 
       const marker = new Marker(currentDate, this.durationInHours, currentCirculation, currentCapital);
+      const circulationPercentOfMax = divide(currentCirculation, this.rules.circulation);
+      const transactionsToSetAnnually = Math.min(this.rules.maxTransactionsAnnually * circulationPercentOfMax);
 
       marker.idx = this.generateMarkerIdx();
       marker.phase = 'collapse';
-      marker.setAnnualTransactions(this.rules.transactionsAnnually);
-      marker.setAnnualMicropayments(this.rules.micropaymentsAnnually);
+      marker.setAnnualTransactions(transactionsToSetAnnually);
+      marker.setAnnualMicropayments(this.rules.maxMicropaymentsAnnually);
 
       const circulationBurned = terraDay.circulationBurned;
       const capitalOutflow = terraDay.capitalOutflow;

@@ -5,8 +5,8 @@ export default interface IRules {
   dollarInflation: number;
 
   enableTaxation: boolean;
-  transactionsAnnually: number;
-  micropaymentsAnnually: number;
+  maxTransactionsAnnually: number;
+  maxMicropaymentsAnnually: number;
 
   enableBitcoinVaulting: boolean;
   btcVaultCapacityPct: number;

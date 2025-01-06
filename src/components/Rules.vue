@@ -39,10 +39,10 @@
 
         <RuleItem type="start" isArgon>
           <template #title>Taxable Events</template>
-          <template #value>{{ formatShorthandNumber(data[asset].transactionsAnnually) }} transactions</template>
+          <template #value>{{ formatShorthandNumber(data[asset].maxTransactionsAnnually) }} transactions</template>
           <template #editing>
             The network will settle
-            <RuleInputText v-model="data[asset].transactionsAnnually" :min="0" :max="212_600_000_000" useThousandsSeparator />
+            <RuleInputText v-model="data[asset].maxTransactionsAnnually" :min="0" :max="212_600_000_000" useThousandsSeparator />
             payment transactions annually.
           </template>
           <template #help>
@@ -52,10 +52,10 @@
 
         <RuleItem type="start" isArgon>
           <template #title>Micropayments</template>
-          <template #value>${{ formatShorthandNumber(data[asset].micropaymentsAnnually) }} annually</template>
+          <template #value>${{ formatShorthandNumber(data[asset].maxMicropaymentsAnnually) }} annually</template>
           <template #editing>
             The stablecoin will process a total revenue volume of
-            <RuleInputText v-model="data[asset].micropaymentsAnnually" :min="0" :max="99_999_999_999" isDollars />
+            <RuleInputText v-model="data[asset].maxMicropaymentsAnnually" :min="0" :max="99_999_999_999" isDollars />
             in micropayments annually (i.e., Ulixee transactions).
           </template>
           <template #help>

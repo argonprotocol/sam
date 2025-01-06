@@ -173,7 +173,7 @@ export default class Marker {
 
   public tryTaxation(rules: IRules) {
     if (!rules.enableTaxation) return;
-    this.runTaxation(rules);
+    this.runTaxation();
   }
 
   public manageSeigniorageProfits(rules: IRules, reserve: Reserve) {
@@ -226,14 +226,12 @@ export default class Marker {
     }
   }
 
-  public runTaxation(rules: IRules) {
-    const currentCirculationPct = divide(this.currentCirculation, rules.circulation);
+  public runTaxation() {
+    const transactionsPerHour = divide(this.annualTransactions, 365 * 24);
+    const micropaymentsPerHour = divide(this.annualMicropayments, 365 * 24);
 
-    const transactionsHourly = divide(this.annualTransactions, 365 * 24);
-    const micropaymentsHourly = divide(this.annualMicropayments, 365 * 24);
-
-    const transactionsToTax = transactionsHourly * this.durationInHours * currentCirculationPct;
-    const micropaymentsToTax = micropaymentsHourly * this.durationInHours;
+    const transactionsToTax = transactionsPerHour * this.durationInHours;
+    const micropaymentsToTax = micropaymentsPerHour * this.durationInHours;
 
     const beforeTaxationPrice = this.currentPrice;
     const averagePrice = divide(this.startingPrice + beforeTaxationPrice, 2);

@@ -17,17 +17,11 @@ const vaultMetaBeforeRecovery: IVaultMeta = {
 }
 
 test("test collapse forever", () => {
-  const startingPrice = 0.001;
-  const startingDate = dayjs.utc('2022-06-30');
-
-  const startingCirculation = rules.circulation;
-  const startingCapital = Marker.calculateCapitalFromCirculationAndPrice(startingCirculation, startingPrice);
-
-  const runner = new BlockchainRunner(rules, { bypassCache: true });
-  const dailyMarkers = runner.runCollapsedForever(startingDate, startingCirculation, startingCapital, vaultMetaBeforeRecovery);
-  const lastMarker = dailyMarkers[dailyMarkers.length - 1];
+  const runner = new BlockchainRunner(rules);
+  const { markers } = runner.runCollapsedForever();
+  const lastMarker = markers[markers.length - 1];
 
   expect(lastMarker.startingPrice).toBe(0.001);
-  expect(lastMarker.currentPrice).toBe(0.001);
+  expect(lastMarker.endingPrice).toBe(0.001);
 });
 

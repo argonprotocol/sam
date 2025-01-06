@@ -1,5 +1,5 @@
 <template>
-  <TransitionRoot as="template" :show="open">
+  <TransitionRoot as="template" :show="isOpen">
     <Dialog ref="dialogRef" class="Player Component relative z-[100]">
       <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100" leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
@@ -92,16 +92,13 @@
 
               <div class="flex flex-col h-full">
                 <div class="text-center items-center text-4xl font-bold text-slate-600 mt-1 relative pt-0 pb-3">
-                  <span alignInsight="center" insightId="price" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="center" class="relative">
+                  <span insightId="price" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="center" class="relative">
                     ${{formatPrice(step.currentPrice)}} <span class="opacity-90 font-light">&nbsp;for&nbsp;</span> ₳1.00
                     <div class="absolute bottom-0 -right-2 translate-x-full">
                       <span v-if="priceChangePct" class="text-xl font-semibold relative top-[-0.42rem]">
                         <span :class="priceChangePct > 0 ? 'text-green-600' : 'text-red-500'">{{ priceChangePct > 0 ? '+' : '' }}{{ addCommas(priceChangePct) }}%</span>
                       </span>
                     </div>
-                    <!-- <div PriceFaded class="absolute bottom-3 left-0 translate-y-full">
-                      ${{formatPrice(item.startingPrice)}}
-                    </div> -->
                   </span>
                 </div>
                 <div class="grow h-full flex flex-row items-stretch justify-center pt-12 pb-16 text-center relative">
@@ -113,7 +110,10 @@
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="bitcoinUnlocking" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
                         <div class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From<br />Bitcoin Unlocking</div>
-                        <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
+                        <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">
+                          ₳0
+                          <AlertIcon v-if="item.endingPrice < 1.00 && !item.circulationRemovedMap.BitcoinFusion && item.endingVaultMeta.bitcoinCount" class="text-red-400/50 inline-block w-5 h-5 ml-1.5" />
+                        </div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="formatAsBillions(item.circulationRemovedMap.BitcoinFusion || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
                           <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Burning From<br />Bitcoin Unlocking</div>
@@ -125,7 +125,10 @@
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="taxedMicropayments" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
                         <div class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From<br />Micropayment Taxes</div>
-                        <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
+                        <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">
+                          ₳0
+                          <AlertIcon v-if="item.endingPrice < 1.00 && !item.circulationRemovedMap.MicropaymentTaxes" class="text-red-400/50 inline-block w-5 h-5 ml-1.5" />
+                        </div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="formatAsBillions(item.circulationRemovedMap.MicropaymentTaxes || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
                           <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Burning From<br />Micropayment Taxes</div>
@@ -137,7 +140,10 @@
                       <div class="relative group text-sm flex flex-row">
                         <div insightId="taxedTransactions" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
                         <div class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From<br />Peer-to-Peer Taxes</div>
-                        <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
+                        <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">
+                          ₳0
+                          <AlertIcon v-if="item.endingPrice < 1.00 && formatAsBillions(item.circulationRemovedMap.TransactionalTaxes || 0) === '0'" class="text-red-400/50 inline-block w-5 h-5 ml-1.5" />
+                        </div>
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-3 translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="formatAsBillions(item.circulationRemovedMap.TransactionalTaxes || 0) !== '0'" class="absolute top-0 right-0 w-full h-full flex flex-row">
                           <div class="flex-1 text-right pr-2 leading-5 text-slate-400">Burning From<br />Peer-to-Peer Taxes</div>
@@ -147,7 +153,7 @@
                       </div>
 
                       <div class="relative group text-sm flex flex-row">
-                        <div insightId="terraCirculationIncrease" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
+                        <div :insightId="formatAsBillions(item.circulationAddedMap.TerraGrowth || 0) !== '0' ? 'terraCirculationIncrease' : 'terraCirculationDecrease'" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" class="absolute z-10 hidden group-hover:block -top-3 -left-3 border-[1.5px] border-r-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
                         <div v-if="formatAsBillions(item.circulationAddedMap.TerraGrowth || 0) !== '0'" class="flex-1 text-right pr-2 leading-5 opacity-20">Inflow From Terra's<br />Rising Popularity</div>
                         <div v-else class="flex-1 text-right pr-2 leading-5 opacity-20">Burning From Terra's<br />Stabilization Reserve</div>
                         <div class="w-28 flex items-center rounded-sm border border-fuchsia-800/10 justify-center text-lg font-semibold text-slate-300">₳0</div>
@@ -169,11 +175,11 @@
                   <div class="w-1/4 flex flex-col relative">
                     <div HorizontalLine class="w-1/2 absolute top-0 left-1/2"></div>
                     <div VerticalLineWithBottomFade class="relative left-1/2 h-16"></div>
-                    <SlotMachine id="supply" bgColor="#9765a8" :yesterday="getPreviousItem(item).endingCirculation" :today="item.endingCirculation" :tomorrow="getNextItem(item).endingCirculation" :pct="supplyPct" class="w-full grow" />
+                    <SlotMachine id="supply" bgColor="#9765a8" :yesterday="getPreviousItem(item).endingCirculation" :today="item.endingCirculation" :tomorrow="getNextItem(item).endingCirculation" :pct="supplyPct" insightId="supply" @mouseenter="showInsight" @mouseleave="hideInsight" position="bottom" align="center"class="w-full grow" />
                   </div>
                   <div class="relative h-full">
                     <div HorizontalLine class="w-full absolute top-0 left-0"></div>
-                    <div class="absolute top-3 left-1/2 -translate-x-1/2 text-center text-sm text-slate-400/80 uppercase whitespace-nowrap">
+                    <div insightId="unbalanced" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" align="center" class="absolute top-3 left-1/2 -translate-x-1/2 text-center text-sm text-slate-400/80 uppercase whitespace-nowrap z-1">
                       <span v-if="formatAsBillions(item.endingCapital) === formatAsBillions(item.endingCirculation)">Both sides are in balance</span>
                       <span v-else-if="item.endingCapital > item.endingCirculation">Demand has {{ formatAsBillions(item.endingCapital - item.endingCirculation) }} more than supply</span>
                       <span v-else>Supply has {{ formatAsBillions(item.endingCirculation - item.endingCapital) }} more than demand</span>
@@ -190,7 +196,7 @@
                   <div class="w-1/4 flex flex-col relative">
                     <div HorizontalLine class="w-1/2 absolute top-0 right-1/2"></div>
                     <div VerticalLineWithBottomFade class="relative left-1/2 h-16"></div>
-                    <SlotMachine id="demand" bgColor="#668ACD" :yesterday="getPreviousItem(item).endingCapital" :today="item.endingCapital" :tomorrow="getNextItem(item).endingCapital" :pct="demandPct" class="w-full grow" />
+                    <SlotMachine id="demand" bgColor="#668ACD" :yesterday="getPreviousItem(item).endingCapital" :today="item.endingCapital" :tomorrow="getNextItem(item).endingCapital" :pct="demandPct" insightId="demand" @mouseenter="showInsight" @mouseleave="hideInsight" position="bottom" align="center" class="w-full grow" />
                   </div>
                   <div class="grow relative">
                     <div class="absolute top-20 bottom-0 left-14 flex flex-col z-40 justify-around">
@@ -214,13 +220,13 @@
                         <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -left-1 -translate-x-full -translate-y-1/2 opacity-20"></div>
                         <div v-if="item.capitalAddedMap.CertaintyGreed" class="absolute top-0 left-0 w-full h-full text-sm flex flex-row">
                           <div class="bg-[#668ACD] w-28 flex items-center justify-center text-lg text-white font-semibold shadow">+ ${{ formatAsBillions(item.capitalAddedMap.CertaintyGreed || 0) }}</div>
-                          <div class="flex-1 text-left pr-2 leading-5 text-slate-400">From Profit<br />Certainty</div>
-                          <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -right-1 translate-x-full -translate-y-1/2"></div>
+                          <div class="flex-1 text-left pl-2 leading-5 text-slate-400">Inflow From<br />Profit Certainty</div>
+                          <div HorizontalLine class="ArrowLeft w-10 absolute top-1/2 -left-1 -translate-x-full -translate-y-1/2"></div>
                         </div>
                       </div>
 
                       <div class="relative group text-sm flex flex-row">
-                        <div insightId="terraCapitalIncrease" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" align="right" class="absolute z-10 hidden group-hover:block -top-3 -right-3 border-[1.5px] border-l-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
+                        <div :insightId="item.capitalRemovedMap.TerraCollapse ? 'terraCapitalDecrease' : 'terraCapitalIncrease'" @mouseenter="showInsight" @mouseleave="hideInsight" @click="toggleGraphView" position="top" align="right" class="absolute z-10 hidden group-hover:block -top-3 -right-3 border-[1.5px] border-l-0 border-dashed border-slate-400/50" style="width: calc(100% + 60px); height: calc(100% + 24px)"></div>
                         <div class="w-28 flex items-center rounded-sm border border-sky-900/10 justify-center text-lg font-semibold text-slate-300">
                           <span v-if="item.capitalRemovedMap.TerraCollapse">-</span><span v-else-if="item.capitalAddedMap.TerraGrowth">+</span> ${{formatAsBillions(item.capitalRemovedMap.TerraCollapse || item.capitalAddedMap.TerraGrowth || 0)}}
                         </div>
@@ -245,7 +251,7 @@
                   <div @mouseenter="showPlayerNibShadow" @mouseleave="hidePlayerNibShadow" @mousemove="updatePlayerNibShadow" ref="playerBarRef" class="relative h-16 flex flex-row items-center">
                     <div MinichartContainer class="relative h-16 w-full flex">
                       <div MinichartBg />
-                      <Minichart :items="items" @click="onMinichartClick" />
+                      <Minichart :items="itemsActive" @click="onMinichartClick" />
                     </div>
                     <div v-if="!dragMeta.isDragging" :style="`left: ${playerNibShadow.left}px; transform: translateX(-5px); opacity: ${playerNibShadow.opacity}`" class="absolute transition-[left] bg-white rounded-full -top-1 -bottom-1 w-2 border z-10 border-slate-400 shadow pointer-events-none"></div>
                     <div @mousedown="startDrag" :style="`cursor: ${sliderCursor}; left: ${playerNib.left}%; transform: translateX(-${playerNib.left}%);`" class="absolute transition-[left] bg-white rounded-full -top-1 -bottom-1 w-2 border z-10 border-slate-400 shadow"></div>
@@ -264,7 +270,7 @@
                   </div>
                 </div>
               </div>
-              <GraphView :items="items" />
+              <GraphView :items="itemsActive" />
             </DialogPanel>
           </TransitionChild>
         </div>
@@ -291,18 +297,24 @@ import Minichart from '../components/Minichart.vue';
 import SlotMachine from '../components/SlotMachine.vue';
 import GraphView from './GraphView.vue';
 import Marker from '../engine/Marker';
+import AlertIcon from '../assets/alert.svg';
+import * as InsightUtils from '../lib/InsightUtils';
 
 dayjs.extend(dayjsUtc);
 
-const open = Vue.ref(false);
+const isOpen = Vue.ref(false);
 const dialogRef = Vue.ref<HTMLDialogElement | null>(null);
 const scoreboardRef = Vue.ref<HTMLDivElement | null>(null);
 
 const items: Vue.Ref<any[]> = Vue.ref([]);
+const itemsActive: Vue.Ref<any[]> = Vue.ref([]);
+const firstIdx: Vue.Ref<number> = Vue.ref(0);
+const lastIdx: Vue.Ref<number> = Vue.ref(0);
+
 const firstItem: Vue.Ref<any> = Vue.ref({});
 const lastItem: Vue.Ref<any> = Vue.ref({});
 const item: Vue.Ref<any> = Vue.ref({});
-const currentIndex: Vue.Ref<number | null> = Vue.ref(null);
+const currentIdx: Vue.Ref<number | null> = Vue.ref(null);
 const step: Vue.Ref<any> = Vue.ref({});
 
 const maxSupplyDemand = Vue.ref(0);
@@ -314,6 +326,8 @@ const priceChangePct: Vue.Ref<number> = Vue.ref(0);
 const isPlaying: Vue.Ref<boolean> = Vue.ref(false);
 
 const playerNibShadow: Vue.Ref<{ left: number, opacity: number }> = Vue.ref({ left: 0, opacity: 0 });
+
+const graphIsOpen = Vue.ref('');
 
 function showPlayerNibShadow(event: MouseEvent) {
   if (!playerBarRef.value) return;
@@ -346,82 +360,23 @@ function updatePlayerNibShadow(event: MouseEvent) {
 function showInsight(event: MouseEvent) {
   if (graphIsOpen.value) return;
 
-  event.stopPropagation();
-  event.preventDefault();
   const targetElem = event.currentTarget as HTMLElement;
   if (!targetElem) return;
 
   const id = targetElem.getAttribute('insightId') || '';
-  const targetRect = targetElem.getBoundingClientRect();
-  const positionAttr = targetElem.getAttribute('position') || '';
-  const alignAttr = targetElem.getAttribute('align') || '';
+  const data = { item: item.value, previousItem: getPreviousItem(item.value) };
+  const options: any = {};
   
-  let x = 0;
-  let y = 0;
-  let width: number | null = null;
-  let positionAt: 'top' | 'bottom' | 'left' | 'right' = 'bottom';
-  let alignTo: 'top' | 'bottom' | 'left' | 'right' = 'left';
-
-  let arrowX = 0;
-  let arrowY = 0;
-
-  if (alignAttr === 'grandparent') {
-    const grandparentElem = targetElem.parentElement?.parentElement;
-    if (!grandparentElem) return;
-    const grandparentRect = grandparentElem.getBoundingClientRect();
-    x = grandparentRect.left;
-    width = grandparentRect.width;
-    arrowX = (targetRect.left - grandparentRect.left) + (targetRect.width / 2);
-
-  } else if (alignAttr === 'right' || positionAttr === 'right') {
-    alignTo = alignAttr === 'right' ? 'right' : alignTo;
-    x = targetRect.left + targetRect.width;
-    arrowX = targetRect.width / 2;
-
-  } else {
-    x = targetRect.left;
-    arrowX = targetRect.width / 2;
+  if (['supply', 'demand'].includes(id)) {
+    options.shiftY = -80;
   }
 
-  if (positionAttr === 'top') {
-    positionAt = 'top';
-    y = targetRect.top;
-  } else if (['left', 'right'].includes(positionAttr)) {
-    positionAt = positionAttr as 'left' | 'right';
-    y = targetRect.top + (targetRect.height / 2);
-  } else {
-    positionAt = 'bottom';
-    y = targetRect.top + targetRect.height;
-  }
-  
-  const data: any = { date: item.value.startingDate }
-  const previousItem =  getPreviousItem(item.value);
-  
-  if (id === 'bitcoin') {
-    data.bitcoinChange = item.value.endingVaultMeta.bitcoinCount - previousItem.endingVaultMeta.bitcoinCount;
-    data.bitcoinCount = item.value.endingVaultMeta.bitcoinCount;
-    data.bitcoinMintingStartPct = item.value.endingVaultMeta.bitcoinMintingPct;
-    data.bitcoinMintingEndPct = item.value.endingVaultMeta.bitcoinMintingPct;
-  } else if (id === 'micropayments') {
-    data.micropaymentsChange = item.value.annualMicropayments - previousItem.annualMicropayments;
-    data.annualMicropayments = item.value.annualMicropayments;
-  } else if (id === 'seigniorage') {
-    data.seigniorageChange = item.value.seigniorageProfits - previousItem.seigniorageProfits;
-    data.seigniorageProfits = item.value.seigniorageProfits;
-  } else if (id === 'price') {
-    data.startingPrice = item.value.startingPrice;
-    data.lowestPrice = item.value.lowestPrice;
-    data.endingPrice = item.value.endingPrice;
-  }
-
-  emitter.emit('showInsight', { id, x, y, width, positionAt, arrowX, arrowY, alignTo, data });
+  InsightUtils.showInsight(event, data, options);
 }
 
 function hideInsight() {
-  emitter.emit('hideInsight');
+  InsightUtils.hideInsight();
 }
-
-const graphIsOpen = Vue.ref('');
 
 function toggleGraphView(event: MouseEvent) {
   const targetElem = event.currentTarget as HTMLElement;
@@ -446,7 +401,6 @@ function toggleGraphView(event: MouseEvent) {
   const grandparentRect = grandparentElem.getBoundingClientRect();
 
   const padding = scoreboardRect?.left;
-  console.log(grandparentRect.left, targetRect.left, grandparentElem, targetElem);
 
   const arrowLeft = (targetRect.left - grandparentRect.left) + (targetRect.width / 2);
   const top = targetRect.top + targetRect.height;
@@ -464,15 +418,14 @@ emitter.on('graphViewHidden', () => {
 function onMinichartClick(event: any) {
   if (!playerBarRef.value) return;
 
-  console.log('onMinichartClick', event);
   const rect = playerBarRef.value.getBoundingClientRect();
   const offsetX = event.x; - rect.left;
   const width = rect.width;
   const newPosPct = Math.min(Math.max(0, offsetX / width) * 100, 100);
-  const totalTicks = items.value.length - 1;
-  const selectedIndex = Math.round(totalTicks * (newPosPct / 100));
+  const totalTicks = itemsActive.value.length - 1;
+  const selectedIdx = Math.round(totalTicks * (newPosPct / 100));
 
-  itemsToSelect.push({ index: selectedIndex });
+  itemsToSelect.push({ idx: selectedIdx });
   processItemsToSelect();
 }
 
@@ -483,46 +436,47 @@ function isZero(num: number, decimals: number = 3) {
 }
 
 function selectPreviousStep() {
-  if (!items.value.length) return;
+  if (!itemsActive.value.length) return;
   
-  if (currentIndex.value === null) {
-    currentIndex.value = 0;
+  if (currentIdx.value === null) {
+    currentIdx.value = firstIdx.value;
   } else {
-    currentIndex.value = Math.max(currentIndex.value - 1, 0);
+    currentIdx.value = Math.max(currentIdx.value - 1, firstIdx.value);
   }
 
-  selectItem(currentIndex.value);
+  selectItem(currentIdx.value);
 }
 
 function selectNextStep() {
-  if (!items.value.length) return;
+  if (!itemsActive.value.length) return;
 
-  if (currentIndex.value === null) {
-    currentIndex.value = 0;
+  if (currentIdx.value === null) {
+    currentIdx.value = 0;
   } else {
-    currentIndex.value = currentIndex.value + 1;
+    currentIdx.value = currentIdx.value + 1;
 
-    const maxIndex = items.value.length - 1;
-    if (currentIndex.value >= maxIndex) {
-      currentIndex.value = maxIndex;
+    const maxIdx = itemsActive.value.length - 1;
+    if (currentIdx.value >= maxIdx) {
+      currentIdx.value = maxIdx;
       isPlaying.value = false;
     }
   }
 
-  selectItem(currentIndex.value);
+  selectItem(currentIdx.value);
   if (isPlaying.value) {
     setTimeout(selectNextStep, 100);
   }
 }
 
-function selectItem(indexNo: number) {
-  currentIndex.value = indexNo;
-  item.value = items.value[currentIndex.value];
+function selectItem(idx: number) {
+  currentIdx.value = idx;
+  item.value = itemsActive.value[currentIdx.value];
   supplyPct.value = item.value.endingCirculation / maxSupplyDemand.value;
   demandPct.value = item.value.endingCapital / maxSupplyDemand.value;
   priceChangePct.value = formatChangePct((item.value.endingPrice - item.value.startingPrice) / item.value.startingPrice);
 
-  playerNib.value.left = (currentIndex.value / items.value.length) * 100;
+  playerNib.value.left = (currentIdx.value / itemsActive.value.length) * 100;
+  item.value.step ??= createStep(item.value);
   step.value = item.value.step;
 }
 
@@ -534,6 +488,10 @@ const itemsToSelect: any[] = [];
 
 function play() {
   isPlaying.value = true;
+  const maxIdx = itemsActive.value.length - 1;
+  if (currentIdx.value === maxIdx) {
+    currentIdx.value = null;
+  }
   selectNextStep();
 }
 
@@ -560,10 +518,10 @@ function onDrag(event: MouseEvent) {
   const offsetX = event.clientX - rect.left;
   const width = rect.width;
   const newPosPct = Math.min(Math.max(0, offsetX / width) * 100, 100);
-  const totalTicks = items.value.length - 1;
-  const selectedIndex = Math.round(totalTicks * (newPosPct / 100));
-
-  itemsToSelect.push({ index: selectedIndex });
+  const totalTicks = itemsActive.value.length - 1;
+  const selectedIdx = Math.round(totalTicks * (newPosPct / 100));
+  
+  itemsToSelect.push({ idx: selectedIdx });
   onDragTimeout = setTimeout(() => {
     processItemsToSelect();
   }, 1);
@@ -572,9 +530,9 @@ function onDrag(event: MouseEvent) {
 function processItemsToSelect() {
   if (!itemsToSelect.length) return;
 
-  const itemToSelect = itemsToSelect.shift();
+  const itemToSelect = itemsToSelect.pop();
   itemsToSelect.splice(0, itemsToSelect.length);
-  selectItem(itemToSelect.index);
+  selectItem(itemToSelect.idx);
 }
 
 function stopDrag() {
@@ -586,12 +544,12 @@ function stopDrag() {
 }
 
 function closePlayer() {
-  open.value = false;
+  isOpen.value = false;
   hideInsight();
 }
 
 function handleKeyPress(e: KeyboardEvent) {
-  if (!open.value) return;
+  if (!isOpen.value) return;
   if (e.key === 'Escape') {
     closePlayer();
   } else if (e.key === 'ArrowRight') {
@@ -602,27 +560,33 @@ function handleKeyPress(e: KeyboardEvent) {
 }
 
 emitter.on('openPlayer', (payload: any) => {
-  open.value = true;
+  isOpen.value = true;
   items.value = payload.items;
-  firstItem.value = items.value[0];
-  lastItem.value = items.value[items.value.length - 1];
-  
-  for (const item of items.value) {
+  currentIdx.value = payload.firstIdx;
+  firstIdx.value = payload.firstIdx;
+  lastIdx.value = payload.lastIdx;
+  firstItem.value = items.value[firstIdx.value];
+  lastItem.value = items.value[lastIdx.value];
+  itemsActive.value = items.value.slice(firstIdx.value, lastIdx.value + 1);
+  maxSupplyDemand.value = 0;
+
+  for (const item of itemsActive.value) {
     maxSupplyDemand.value = Math.max(maxSupplyDemand.value, item.startingCirculation, item.endingCirculation, item.startingCapital, item.endingCapital);
-    item.step = createStep(item);
   }
 
   selectItem(0);
 });
 
 function getNextItem(item: any) {
-  const nextItem = items.value[item.nextIdx] || item;
+  const nextIdx = Math.min(item.nextIdx, lastIdx.value);
+  const nextItem = items.value[nextIdx] || item;
   nextItem.step ??= createStep(nextItem);
   return nextItem;
 }
 
 function getPreviousItem(item: any) {
-  const previousItem = items.value[item.previousIdx] || item;
+  const previousIdx = Math.max(item.previousIdx, firstIdx.value);
+  const previousItem = items.value[previousIdx] || item;
   previousItem.step ??= createStep(previousItem);
   return previousItem;
 }
@@ -694,6 +658,7 @@ Vue.onUnmounted(() => {
       top: -1px;
       height: calc(100% + 2px);
       background: linear-gradient(to right, rgb(248, 249, 252) 0%, rgba(248, 249, 252, 0) 100%);
+      pointer-events: none;
       z-index: 10;
     }
     &:after {
@@ -705,6 +670,7 @@ Vue.onUnmounted(() => {
       top: -1px;
       height: calc(100% + 2px);
       background: linear-gradient(to left, rgb(248, 249, 252) 0%, rgba(248, 249, 252, 0) 100%);
+      pointer-events: none;
       z-index: 10;
     }
   }

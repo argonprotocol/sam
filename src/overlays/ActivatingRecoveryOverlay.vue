@@ -1,6 +1,6 @@
 <template>
-  <TransitionRoot as="template" :show="open">
-    <Dialog class="relative z-50">
+  <TransitionRoot as="template" :show="isOpen">
+    <Dialog class="relative z-50" @close="closeOverlay()">
       <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100" leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
       </TransitionChild>
@@ -19,7 +19,7 @@
                 </div>
               </div>
               <div class="flex justify-end px-3">
-                <button type="button" class="rounded-md bg-[#E6EAF3] border border-[#969AA5] px-8 py-2 mt-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-fuchsia-600 hover:border-fuchsia-800 hover:text-white focus:outline-none focus:ring-0" @click="nextStep">Reactivate Stabilization Mechanisms</button>
+                <button type="button" class="rounded-md bg-[#E6EAF3] border border-[#969AA5] px-8 py-2 mt-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-fuchsia-600 hover:border-fuchsia-800 hover:text-white focus:outline-none focus:ring-0" @click="closeOverlay()">Reactivate Stabilization Mechanisms</button>
               </div>
             </DialogPanel>
           </TransitionChild>
@@ -29,18 +29,16 @@
   </TransitionRoot>
 </template>
 
-
 <script setup lang="ts">
 import * as Vue from 'vue'
 import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue'
 
 const emit = defineEmits(['close'])
 
-const open = Vue.ref(true);
+const isOpen = Vue.ref(true);
 
-function nextStep() {
-  open.value = false;
+function closeOverlay() {
+  isOpen.value = false;
   emit('close');
 }
-
 </script>

@@ -16,6 +16,9 @@
     <TooltipOverlay />
     <VideoOverlay />
     <WhitepapersOverlay />
+    <FaqOverlay />
+    <DetailsOfLiquidLocking />
+    <ConfirmConfigReset />
   </div>
 </template>
 
@@ -26,7 +29,10 @@ import WelcomeOverlay from './overlays/WelcomeOverlay.vue';
 import TooltipOverlay from './overlays/TooltipOverlay.vue';
 import VideoOverlay from './overlays/VideoOverlay.vue';
 import WhitepapersOverlay from './overlays/WhitepapersOverlay.vue';
-import { storeToRefs } from 'pinia'
+import FaqOverlay from './overlays/FaqOverlay.vue';
+import DetailsOfLiquidLocking from './overlays/Details.vue';
+import ConfirmConfigReset from './overlays/ConfirmConfigReset.vue';
+import { storeToRefs } from 'pinia';
 import Header from './components/Header.vue';
 // import Tour from './panels/Tour.vue';
 import Running from './panels/Running.vue';

@@ -1,6 +1,6 @@
 <template>
   <TransitionRoot as="template" :show="isOpen">
-    <Dialog class="relative z-[2000]">
+    <Dialog class="relative z-[2000]" @close="closeOverlay()">
       <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100" leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
         <div @click="close" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
       </TransitionChild>
@@ -11,11 +11,11 @@
             
             <DialogPanel class="relative transform rounded-lg bg-white px-5 pb-3 pt-3 text-left shadow-xl transition-all w-full max-w-5xl min-h-[50rem]">
               
-              <div v-if="completedWelcome" @click="close()" CloseIcon class="absolute -top-2 -right-2 cursor-pointer flex flex-row items-center space-x-1 border border-slate-400/70 rounded-full p-2 bg-white hover:bg-slate-300 z-1">
+              <div v-if="completedWelcome" @click="closeOverlay()" CloseIcon class="absolute -top-2 -right-2 cursor-pointer flex flex-row items-center space-x-1 border border-slate-400/70 rounded-full p-2 bg-white hover:bg-slate-300 z-1">
                 <XMarkIcon class="inline-block w-4 h-4" />
               </div>
               <div v-if="!completedWelcome" class="pb-3 border-b border-slate-300">
-                <div @click="close()" class="inline-block cursor-pointer text-gray-400 hover:text-fuchsia-600">
+                <div @click="closeOverlay()" class="inline-block cursor-pointer text-gray-400 hover:text-fuchsia-600">
                   <ArrowLeftIcon class="inline-block w-4 h-4 relative top-[-1.5px]" /> Back to Welcome
                 </div>
               </div>
@@ -26,18 +26,15 @@
 
                 <section class="space-y-3">
                   <h3>What is the purpose of this tool?</h3>
-                  <p> </p>
+                  <p>This is a simulation engine that allows you to test Argon's ability to recover from a death spiral. It loads with a default configuration that mimics Terra's $18.7 billion implosion, but you can edit the properties to see how Argon performs under different conditions.</p>
                 </section>
 
                 <section class="space-y-3 pt-4">
-                  <h3>What is the collapse</h3>
-                  <p>In order to fully test Argon's ability to recover from a death spiral, we are (re)creating the largest stablecoin collapse in history.</p>
-                  <p>We will disable all Argon stabilization mechanisms and force it to mimic Terra's $18.7 billion implosion. This will cause Argon to lose 99.999% of its value over the next 30 days, ultimately dropping to a rock-bottom low of $0.001 per token. No stablecoin has ever recovered from this level of loss.</p>
+                  <h3>How is the collapse being modeled?</h3>
+                  <p>In order to fully test Argon's ability to recover from a death spiral, this model (re)creates the largest stablecoin collapse in history.</p>
+                  <p>It first disables all Argon stabilization mechanisms, then it mimics Terra's $18.7 billion implosion. This causes Argon to lose 99.999% of its value over the next 30 days, ultimately dropping to a rock-bottom of $0.001 per token. No stablecoin has ever recovered from this level of loss.</p>
 
-                  <p>Argon's Terra-like collapse is finished. Nearly $18,700,000,000 (that's billions) in capital has been erased from the markets, and the asset is sitting at $0.001 per argon.</p>
-
-                  <p>Less than {{ props.daysToRecover < 7 ? 'a' : props.daysToRecover }} {{ props.daysToRecover < 7 ? 'week has' : 'days have' }} elapsed since Argon's stabilization mechanisms were reactivated. Its price has now recovered to its original value, plus any additional value required to match the rise of inflation.</p>
-
+                  <p>Once Argon's Terra-like collapse is finished, nearly $18,700,000,000 (that's billions) in capital has been erased from the markets, the model renenables Argon's stabilization mechanisms.</p>
                 </section>
               </div>
               
@@ -65,7 +62,7 @@ const { completedWelcome } = storeToRefs(basicStore);
 
 const isOpen = Vue.ref(false);
 
-function close() {
+function closeOverlay() {
   isOpen.value = false;
   if (!completedWelcome.value) {
     emitter.emit('openWelcomeOverlay');

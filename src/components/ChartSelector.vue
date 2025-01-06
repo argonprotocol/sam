@@ -39,7 +39,16 @@ let currentPointPos = {
   lastX: 0,
 };
 
-const dragMeta: { wasDragged: boolean, startOffset: number, startWidth: number, side: string | null } = { wasDragged: false, startOffset: 0, startWidth: 0, side: null };
+const dragMeta: { 
+  isPointerDown: boolean,
+  wasDragged: boolean, 
+  startOffset: number, 
+  startWidth: number, 
+  side: string | null,
+  startX: number,
+  startY: number,
+  startMillis: number,
+} = { isPointerDown: false, wasDragged: false, startOffset: 0, startWidth: 0, side: null, startX: 0, startY: 0, startMillis: 0 };
 
 Vue.watch(() => props.config, (newVal) => {
   if (!newVal.firstIdx && !newVal.lastIdx) return;
@@ -81,8 +90,18 @@ function openPlayer() {
 function onPointerDown(event: PointerEvent) {
   const elem = (event.target as HTMLElement);
   
+  dragMeta.isPointerDown = true;
   dragMeta.wasDragged = false;
   dragMeta.startWidth = currentPointPos.lastX - currentPointPos.firstX;
+  dragMeta.startX = event.clientX;
+  dragMeta.startY = event.clientY;
+  dragMeta.startMillis = new Date().getTime();
+  
+  setTimeout(() => {
+    if (!dragMeta.isPointerDown) return;
+    document.body.classList.add('isGrabbing');
+    dragMeta.wasDragged = true;
+  }, 300);
 
   if (elem.hasAttribute('EdgeLeft')) {
     dragMeta.startOffset = event.clientX - currentPointPos.firstX;
@@ -100,25 +119,30 @@ function onPointerDown(event: PointerEvent) {
 }
 
 function emitDrag(event: PointerEvent) {
-  const clientX = event.clientX - dragMeta.startOffset;
+  const timeSinceStart = new Date().getTime() - dragMeta.startMillis;
+  const xDiff = Math.abs(event.clientX - dragMeta.startX);
+  const yDiff = Math.abs(event.clientY - dragMeta.startY);
+  if (timeSinceStart < 300 && xDiff < 5 && yDiff < 5) return;
+
+  document.body.classList.add('isGrabbing');
+  dragMeta.wasDragged = true;
+
+  const fixedX = event.clientX - dragMeta.startOffset;
   
   let firstX = currentPointPos.firstX;
   let lastX = currentPointPos.lastX;
 
   if (dragMeta.side === 'left') {
-    firstX = Math.min(clientX, lastX - 1);
+    firstX = Math.min(fixedX, lastX - 1);
   } else if (dragMeta.side === 'right') {
-    lastX = Math.max(clientX, firstX + 1);
+    lastX = Math.max(fixedX, firstX + 1);
   } else {
-    firstX = clientX;
-    lastX = clientX + dragMeta.startWidth;
-    document.body.classList.add('isGrabbing');
+    firstX = fixedX;
+    lastX = fixedX + dragMeta.startWidth;
   }
 
   const leftEvent = new MouseEvent(event.type, { ...event, clientX: firstX, clientY: event.clientY });
   const rightEvent = new MouseEvent(event.type, { ...event, clientX: lastX, clientY: event.clientY });
-
-  dragMeta.wasDragged = true;
 
   emit('move', { left: leftEvent, right: rightEvent });
 }
@@ -129,6 +153,8 @@ function onPointerUp(event: PointerEvent) {
   elem.releasePointerCapture(event.pointerId);
   document.body.classList.remove('isGrabbing');
 
+  dragMeta.isPointerDown = false;
+  
   if (!dragMeta.wasDragged) {
     emit('openPlayer', { firstIdx: props.config.firstIdx, lastIdx: props.config.lastIdx });
   }

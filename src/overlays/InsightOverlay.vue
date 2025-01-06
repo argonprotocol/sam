@@ -1,7 +1,7 @@
 <template>
   <div v-if="isOpen" :style="{ top: top, left: left, width: width, transform: `translate(${translateX}, ${translateY})` }" class="absolute z-[1000] border border-slate-500/30 flex flex-col rounded bg-white px-6 py-2 text-left shadow-xl transition-all pointer-events-none">
     
-    <div :style="{ left: arrowLeft, top: arrowTop, bottom: arrowBottom, right: arrowRight, rotate: positionAt === 'top' ? '180deg' : '0deg' }" class="absolute -translate-x-1/2 -translate-y-full">
+    <div :style="{ left: arrowLeft, top: arrowTop, bottom: arrowBottom, right: arrowRight, rotate: positionAt === 'top' ? '180deg' : '0deg', transform: `translate(${arrowTranslateX}, -100%)` }" class="absolute">
       <svg class="relative z-10" width="24" height="12" viewBox="0 0 24 12" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 0L24 12H0L12 0Z" fill="white"/>
       </svg>
@@ -11,83 +11,186 @@
     </div>
     
     <div class="grow">
-      <div class="py-3 text-left text-sm text-slate-500 font-light">
+      <div :style="{ textAlign }" class="py-3 text-left text-sm text-slate-500 font-light">
         
         <div v-if="id === 'bitcoinCoverage'" class="space-y-2">
-          <p>Bitcoins play a pivotal role in the Argon ecosystem with Burn Coverage being the most important. </p>
-          <div class="border-b mb-2 pb-2 flex flex-row space-x-2">
-            <div>Bitcoins {{ data.bitcoinChange < 0 ? 'Unlocked' : 'Added' }} Today: </div>
-            <div>{{ addCommas(Math.round(Math.abs(data.bitcoinChange))) }}</div>
+          <p>Bitcoins play a pivotal role in the Argon ecosystem. Vaulted bitcoin are required to burn a predetermined amount of argons to unlock. This amount fluctuates based on
+            Argon's price. When Argon's price is below target, the mathematical formula creates a massive wall of shorts that consumes all excess tokens.</p>
+          <div class="flex flex-row justify-around text-center pt-5">
+            <div class="pb-2 flex flex-col space-x-2">
+              <div class="text-xl font-bold">{{ addCommas(Math.round(item.endingVaultMeta.bitcoinCount)) }}</div>
+              <div>Vaulted Bitcoins</div>
+            </div>
+            <div class="pb-2 flex flex-col space-x-2">
+              <div class="text-xl font-bold">{{ addCommas(item.endingVaultMeta.bitcoinCount - item.startingVaultMeta.bitcoinCount, 2) }}</div>
+              <div>Vaulted Today</div>
+            </div>
           </div>
-          <div class="border-b mb-5 pb-2 flex flex-row space-x-2">
-            <div>Minting Capacity at Start: </div>
-            <div>{{ addCommas(Math.round(Math.abs(data.bitcoinMintingPct * 2))) }}%</div>
-          </div>
-          <div class="border-b mb-5 pb-2 flex flex-row space-x-2">
-            <div>Minting Capacity at End: </div>
-            <div>{{ addCommas(Math.round(Math.abs(data.bitcoinMintingPct * 2))) }}%</div>
-          </div>
-          <p v-if="data.bitcoinChange === 0">Bitcoins can only be added when the ratio of argons minted by bitcions is less than 50%. No bitcoins have been added since yesterday. This is because there is no minting space for new bitcoins.</p>
-          <p v-else>{{ addCommas(Math.round(Math.abs(data.bitcoinChange))) }} bitcoins were {{ data.bitcoinChange < 0 ? 'unlocked from' : 'added to' }} the Argon Vaults today, which brings the total number of vaulted bitcoins to {{ addCommas(Math.round(data.bitcoinCount)) }}.</p>
-          <p>For more details see pages 12-14 of<em>Whitepaper #2</em>.</p>
-        </div>
-
-        <div v-if="id === 'bitcoinProfits'" class="space-y-2">
-          <p>Bitcoins play a pivotal role in the Argon ecosystem. The total number of bitcoins vaulted in the Argon Vaults is ---.</p>
-          <p>The total value of the bitcoins vaulted is ---.</p>
-        </div>
-
-
-        <div v-if="id === 'argonRelativeToDollar'" class="space-y-2">
-          <p>The price of Argon has increased by {{ data.dollarDiffPct > 0 ? '+' : '' }}{{ data.dollarDiffPct }}% compared to the dollar today.</p>
-        </div>
-
-        <div v-if="id === 'micropayments'" class="space-y-2">
-          <p>The network's annual micropayments volume increased by ${{ currency(data.micropaymentsChange, 0) }} bringing the total volume to ${{ currency(data.annualMicropayments, 0) }} </p>
-          <p>We expect the vast majority of this ${{ formatShorthandNumber(data.annualMicropayments, { mantissa: 0, optionalMantissa: false }) }} to be driven by demand from the Ulixee Data Network.</p>
-        </div>
-
-        <div v-if="id === 'seigniorage'" class="space-y-2">
-          <p>Argon's seigniorage model accrues all incoming capital to the network's Ownership Tokens. This capital increased by ${{ currency(data.seigniorageChange, 0) }}, which brings the network's total profits to ${{ currency(data.seigniorageProfits, 0) }}.</p>
-        </div>
-        
-        <div v-if="id === 'price'" class="space-y-2">
-          <p v-if="data.startingPrice === data.lowestPrice && data.lowestPrice === data.endingPrice">The price of Argon has remained steady at ${{ formatPrice(data.startingPrice )}} throughout the entire day. Explore the rest of this page to see the details.</p>
-          <p v-else>The price of Argon started at ${{ formatPrice(data.startingPrice )}} this morning, dropped to ${{ formatPrice(data.lowestPrice )}}, then finished at ${{ formatPrice(data.endingPrice )}}. The rest of this page shows you how this price was formed.</p>
-        </div>
-
-        <p v-if="id === 'speculativeGreed'" class="space-y-2">Capital increase from profit speculation is driven by price momentum from previous days. Yesterday's price increase was 0.2%, which is less than the configured minimum of 5% and therefore why no capital was added.</p>
-
-        <p v-if="id === 'certaintyGreed'" class="space-y-2">Profit certainty is driven by taxation, which has little speculation and is therefore a more stable source of capital. So long as the Ulixee Data Network continues to be used, this will be a consistent burn of circulation and therefore a consistent upward increase in price.</p>
-
-        <p v-if="id === 'terraCapitalIncrease'" class="space-y-2">Terra had $3B sitting in their Luna Foundation which they used during the Terra collapse. We're following the same process with Argon in order to create a realistic recreation of Terra's $18.7B implosion.</p>
-
-        <p v-if="id === 'todaysCapital'" class="space-y-2">Capital in the Argon has increased from $14B to $14.2B since yesterday.</p>
-
-        <p v-if="id === 'yesterdaysCapital'" class="space-y-2">Yesterday ended with $14B of capital sitting in the Argon.</p>
-
-        <p v-if="id === 'todaysCirculation'" class="space-y-2">Capital in the Argon has increased from $14B to $14.2B since yesterday.</p>
-
-        <p v-if="id === 'yesterdaysCirculation'" class="space-y-2">Capital in the Argon has increased from $14B to $14.2B since yesterday.</p>
-
-        <div v-if="id === 'bitcoinUnlocking'" class="space-y-2">
-          <p>This is circulation that has been removed using Argon's bitcoin unlocking mechanism. Although bitcoin owners can unlock at any time, the SAM model only triggers it when there is a guaranteed profit to be made due to Argon dropping below its target price.</p>
-          
-          <p>---- bitcoins were unlocked, which is the maximum amount that could be unlocked without pushing Argon's price above $1.00. The unlockers earned an average profit of 35%.</p>
-          
-          <p>No bitcoins were unlocked because Argon's price has remained stready at $1.00.</p>
-
+          <p>Bitcoins can only be added when the ratio of argons minted by bitcoins is less than 50% of circulation. At the start of {{ dayjs.utc(item.startingDate).format('MMM D') }}, Argons minted by Bitcoin was at {{ ((item.startingVaultMeta.argonsMintedByBitcoins / item.startingCirculation) * 100).toFixed(2) }}%, which meant {{ Math.round((item.startingCirculation/2) - item.startingVaultMeta.argonsMintedByBitcoins) }} new argons could be minted.</p>
           <p>For more details see pages 12-14 of <em>Whitepaper #2</em>.</p>
         </div>
 
-        <div v-if="id === 'annualMicropayments'" class="space-y-2">
-          <p>This is circulation that has been removed using Argon's micropayments taxation mechanism.</p>
+        <div v-if="id === 'bitcoinProfits'" class="space-y-2">
+          <p>Bitcoins are heavily incentived to participate in Argon vaults for multiple reasons. In addition to hedging Bitcoin price drops, vaults allow bitcoins to earn ratcheting yields when Bitcoin's price fluctuates as well as from covering shorts whenever Argon's price drops.</p>
+          <p>To better understand the incentives for bitcoins to enter Argon vaults, see <em>Whitepaper #2</em> or explore our Liquid Locking simulation tool.</p>
         </div>
 
-        <p v-if="id === 'annualTransactions'" class="space-y-2">This is circulation that has been removed using Argon's transaction taxation mechanism.</p>
+        <div v-if="id === 'argonRelativeToDollar'" class="space-y-2">
+          <p>Argon uses an internal inflation index to maintain consistent value over time. This means the Argon is a truly hard currency with no inflation or deflation. Since the dollar is (and has historically been) an inflationary currency, Argon's value is expected to consistently increase over time relative to the dollar.</p>
+        </div>
 
-        <p v-if="id === 'terraCirculationIncrease'" class="space-y-2">Capital in the Argon has increased from $14B to $14.2B since yesterday.</p>
+        <div v-if="id === 'argonLosses'" class="space-y-2">
+          <p>Due to the way pricing incentives are placed on both sides of Argon's price, the only loser during a price drop is the person who sells below target due to fear or some other panic. The flip side of the trade are the vaulted bitcoins who profit, and of course, the currency itself which restabilizes due to the burning of excess tokens.</p>
+        </div>
 
+        <div v-if="id === 'seigniorageProfits'" class="space-y-2">
+          <p>Argon's stabilization mechanisms have no need for U.S. Treasury Bonds or reserve accounts. This allows for a seigniorage business model, which means all incoming capital accrues directly to the network's Ownership Tokens and network mining nodes..</p>
+        </div>
+
+        <div v-if="id === 'seigniorageLosses'" class="space-y-2">
+          <p>In no circumstance will Ownership Tokens incur losses due to Argon instability. The token's primary purpose is to provide governance oversight and absorb excess capital when Argon's price rises above target. If Argon drops below target, instead of penalizing Ownership Tokens, other mechanisms are used to restabilize.</p>
+        </div>
+
+        <div v-if="id === 'annualTransactions'" class="space-y-2">
+          <p>
+            All standard peer-to-peer Argon transactions are taxed a flat 20¢ regardless of whether the transaction is valued at $2 or $2B. The stat shown above is the total number of 
+            annual transactions across the entire network. You can customize this property in your model's configuration settings.
+          </p>
+        </div>
+
+        <div v-if="id === 'annualMicropayments'" class="space-y-2">
+          <p>Micropayments are categorized as any transaction valued at less than $1.00. The network enacts a 20% tax on these transactions. Due to our novel Wage Protection algorithm, the quantity of taxes that are burned when Argon's price drops below target rises substantially. See <em>Whitepaper #2</em> for more details.</p>
+          <p>We expect the vast majority of micropayments to be driven by demand from the Ulixee Data Network.</p>
+        </div>
+        
+        <!-- ---------------------------------------------------- -->
+
+        <div v-if="id === 'price'" class="space-y-2">
+          <p>
+            <template v-if="item.startingPrice === item.lowestPrice && item.lowestPrice === item.endingPrice">The price of Argon has remained steady at ${{ formatPrice(item.startingPrice )}} throughout the entire day.</template>
+            <template v-else>The price of Argon started at ${{ formatPrice(item.startingPrice )}} on the morning of {{ dayjs.utc(item.startingDate).format('MMM D') }}. It then dropped to ${{ formatPrice(item.lowestPrice )}} before finishing at ${{ formatPrice(item.endingPrice )}}. </template>
+            SAM uses the basic Law of Supply and Demand to culculate this price:
+          </p>
+          <p class="monospace italic bg-slate-100/100 px-2 py-1 rounded-md">Price = Demand / Supply</p>
+          <p>Explore the rest of this page to see the details.</p>
+        </div>
+
+        <div v-if="id === 'unbalanced'" class="space-y-2">
+          <p v-if="item.endingCapital === item.endingCirculation">This is required for the price to be stable.</p>
+          <p v-if="item.endingCapital < item.endingCirculation">The system must remove excess circulation (supply) before the price can restabilize.</p>
+        </div>
+
+        <!-- ---------------------------------------------------- -->
+
+        <div v-if="id === 'bitcoinUnlocking'" class="space-y-2">
+          <template v-if="item.circulationRemovedMap.BitcoinFusion">
+            <p>{{ addCommas(Math.round(item.circulationRemovedMap.BitcoinFusion || 0)) }} tokens were burned from circulation as bitcoins were unlocked from vaults. Although bitcoins can unlock at any time, the SAM model only triggers them when a guaranteed profit is available due to Argon dropping below its target price.</p>
+            <p>The {{ addCommas(item.startingVaultMeta.bitcoinCount - item.endingVaultMeta.bitcoinCount, 2) }} bitcoins that took advantage of this short earned an average profit of 35%.</p>            
+          </template>
+          <p v-else>
+            <template v-if="item.endingPrice === 1.00">No bitcoins were unlocked from vaults and therefore no argons were burned from circulation because Argon's price was at target. Although bitcoins can unlock at any time, the SAM model only triggers unlocking when there is a guaranteed profit to be made due to Argon dropping below target.</template>
+            <template v-else-if="!item.endingVaultMeta.bitcoinCount">There are no vaulted bitcoins to unlock, and therefore, no argons were burned from circulation.</template>
+            <template v-else>{{ addCommas(Math.round(item.startingVaultMeta.bitcoinCount))}} bitcoins are vaulted and available for unlocking. However, none of these bitcoins are being used to stabilize the price due to this model's configuration. All stabilization mechanisms have been disabled during this "{{ item.phase }}" phase. If enabled, the price would restabilize within days.</template>
+          </p>
+          <p>See pages 12-14 of <em>Whitepaper #2</em> to learn more about bitcoin unlocking.</p>
+        </div>
+
+        <div v-if="id === 'taxedMicropayments'" class="space-y-2">
+          <template v-if="item.circulationRemovedMap.MicropaymentTaxes">
+            <p>₳{{ formatShorthandNumber(item.circulationRemovedMap.MicropaymentTaxes) }} was burned from circulation through micropayments taxation (20% of ₳{{ formatShorthandNumber(Marker.calculateWageProtectedPrice(item.annualMicropayments, item.lowestPrice)) }} annually). Learn more about this in <em>Whitepaper #2</em>.</p>
+          </template>
+          <template v-else>
+            <p>The system has ₳{{ formatShorthandNumber(Marker.calculateWageProtectedPrice(item.annualMicropayments, item.lowestPrice) * 0.2/365) }}) in daily taxable burns from reocurring micropayments (20% of ₳{{ formatShorthandNumber(Marker.calculateWageProtectedPrice(item.annualMicropayments, item.lowestPrice)) }} in annual reocurring revenue). However, none of these taxes are currently being used. The model's configuration has disabled all stabilization mechanisms (such as taxes) during this "{{ item.phase }}" phase.</p>
+          </template>
+        </div>
+
+        <div v-if="id === 'taxedTransactions'" class="space-y-2">
+          <template v-if="item.circulationRemovedMap.TransactionalTaxes">
+            <p>₳{{ formatShorthandNumber(item.circulationRemovedMap.TransactionalTaxes) }} was burned from circulation through transactional taxes (20&cent; per transaction). Learn more about this in <em>Whitepaper #2</em>.</p>
+          </template>
+          <template v-else>
+            <p>The system has ₳{{ formatShorthandNumber(item.annualTransactions * 0.2/365) }} transactional taxes burned from circulation each day (20&cent; per transaction). However, none of these are currently being used to stabilize the price. The model's configuration has disabled all stabilization mechanisms (such as taxes) during this "{{ item.phase }}" phase.</p>
+          </template>
+        </div>
+
+
+        <p v-if="id === 'terraCirculationIncrease'" class="space-y-2">
+          During its rise in popularity, the inflow of new capital required an average of ₳{{formatShorthandNumber(item.circulationAddedMap.TerraGrowth, 2)}} in new tokens to be created on a daily basis. SAM follows the same process with Argon in order to create a realistic recreation of Terra's $18.7B implosion.          
+        </p>
+
+        <p v-if="id === 'terraCirculationDecrease'" class="space-y-2">
+          <template v-if="previousItem.circulationRemovedMap.ReserveSpend">
+            At the start of Terra's collapase, the foundation had $3B of reserve capital which it used to buy and burn tokens out of circulation. They hoped that such action would restabilize the asset. Our SAM model follows the same process in order to create a realistic Argon recreation of Terra's $18.7B implosion.
+          </template>
+          <template v-else-if="previousItem.endingReserveMeta.amountRemaining">
+            This lever models Terra's attempt to use reserve funds to restabilize its token. However, it is only applied during the "collapse" phase.
+          </template>
+          <template v-else>
+            This lever models Terra's attempt to use reserve funds to restabilize its token. However, at this point in the model, Terra's reserve capital has been completely emptied.
+          </template>
+        </p>
+
+        <!-- ---------------------------------------------------- -->
+
+        <p v-if="id === 'speculativeGreed'" class="space-y-2">
+          This capital increase is driven by profit speculation based on price momentum from previous days. It's based on the principle that people move into assets that are 
+          constantly increasing in value. Yesterday's price rose {{item.pctIncreaseFromAllSources}}%, which is 
+          
+          <template v-if="item.pctIncreaseFromAllSources < rules.speculativeGreedLow">less than the configured minimum of {{rules.speculativeGreedLow}}% and therefore why no capital was added. </template>
+          <template v-else>greater than the configured minimum of {{rules.speculativeGreedLow}}% and therefore why capital was added.</template>
+          You can configure this property in your model's configuration settings.
+        </p>
+
+        <p v-if="id === 'certaintyGreed'" class="space-y-2">
+          This capital increase is drive by the profit certainty that comes from taxation. It has little to do with speculation and is therefore a stable source of capital. So long as the 
+          Ulixee Data Network continues to be used, a consistant quantity of tokens will be burned from circulation and therefore a consistent upward increase in price. Yesterday's taxation
+          burn increased the Argon by {{ item.pctIncreaseFromTaxationCompoundedAnnually.toFixed(2) }}%, which is
+          <template v-if="item.pctIncreaseFromTaxationCompoundedAnnually < rules.certaintyGreedLow">less than the configured minimum of {{rules.certaintyGreedLow}}% and therefore why no capital was added. </template>
+          <template v-else>greater than the configured minimum of {{rules.certaintyGreedLow}}% and therefore why capital was added.</template>
+          You can configure this property in your model's configuration settings.
+        </p>
+
+        <p v-if="id === 'terraCapitalIncrease'" class="space-y-2">
+          An average of ${{formatShorthandNumber(item.capitalAddedMap.TerraGrowth, 2)}} was flowing into Terra on a daily basis. SAM follows the same process with Argon in order to create a realistic recreation of Terra's $18.7B implosion.          
+        </p>
+        
+        <p v-if="id === 'terraCapitalDecrease'" class="space-y-2">
+          Over the span of a single month, Terra lost $18.7B in capital. This SAM model closely follows the same flow in order to create a realistic recreation of Terra's $18.7B implosion.
+        </p>
+
+        <p v-if="id === 'supply'" class="space-y-2">
+          Argons have
+          <template v-if="item.endingCirculation > previousItem.endingCirculation">increased by ${{ formatShorthandNumber(item.endingCirculation - previousItem.endingCirculation) }} since yesterday. They are now at to ${{ formatShorthandNumber(item.endingCirculation) }}. </template>
+          <template v-else-if="item.endingCirculation < previousItem.endingCirculation">decreased by ${{ formatShorthandNumber(previousItem.endingCirculation - item.endingCirculation) }} since yesterday. They are now at ${{ formatShorthandNumber(item.endingCirculation) }}. </template>
+          <template v-else>remained steady since yesterday with ${{ formatShorthandNumber(item.endingCirculation, { mantissa: 2 }) }} in circulation. </template>
+
+          <template v-if="item.endingCirculation === item.endingCapital">Supply is in balance with demand.</template>
+          <template v-else-if="item.endingCirculation > item.endingCapital">It must be reduced by ${{ formatShorthandNumber(item.endingCirculation - item.endingCapital) }} to reach equilibrium with demand.</template>
+        </p>
+
+        <p v-if="id === 'demand'" class="space-y-2">
+          Capital in the Argon has
+          <template v-if="item.endingCapital > previousItem.endingCapital">increased by ${{ formatShorthandNumber(item.endingCapital - previousItem.endingCapital) }} to ${{ formatShorthandNumber(item.endingCapital) }} since yesterday.</template>
+          <template v-else-if="item.endingCapital < previousItem.endingCapital">decreased by ${{ formatShorthandNumber(previousItem.endingCapital - item.endingCapital) }} to ${{ formatShorthandNumber(item.endingCapital) }} since yesterday.</template>
+          <template v-else>remained steady since yesterday with ${{ formatShorthandNumber(item.endingCapital, { mantissa: 2 }) }} in the market. </template>
+
+          <template v-if="item.endingCapital === item.endingCirculation">Supply is in balance with demand.</template>
+          <template v-else-if="item.endingCirculation - item.endingCapital > 1">It must be increased by ${{ formatShorthandNumber(item.endingCirculation - item.endingCapital) }} to reach equilibrium with supply.</template>
+        </p>
+
+        <!-- ---------------------------------------------------- -->
+
+        <p v-if="id === 'collapseThenRecover'" class="space-y-2">
+         This accurately simulates the Terra collapse. It shows how the Argon would behave if it completely collapsed ($18.7B implosion) before any of Argon's stabilization mechanisms were activated.
+        </p>
+
+        <p v-if="id === 'collapsedForever'" class="space-y-2">
+          This shows what happens when Argon's stabilization mechanism are completely disabled. Forever. It's basically the Terra collapse reenacted.
+        </p>
+
+        <p v-if="id === 'collapsingRecovery'" class="space-y-2">
+          This scenario is the most brutal collapse we could devise. It's also completley unrealistic. It begins with a $4.5B market shock, which Argon's mechanisms almost instantly recover from. Instead of letting the market recognize Argon's resilience, the model continues to be hit with an additional 23 market shocks totalling another $14.2B over a 30 day timespan.
+        </p>
       </div>
     </div>            
   </div>
@@ -95,17 +198,24 @@
 
 <script setup lang="ts">
 import * as Vue from 'vue';
+import { storeToRefs } from 'pinia';
 import dayjs from 'dayjs';
 import dayjsUtc from 'dayjs/plugin/utc';
 import emitter from '../emitters/basic';
-import { addCommas, currency, formatPrice, formatShorthandNumber } from '../lib/BasicUtils';
+import { addCommas, currency, formatAsBillions, formatPrice, formatShorthandNumber } from '../lib/BasicUtils';
+import Marker from '../engine/Marker';
+import { useBasicStore } from '../store';
 
 dayjs.extend(dayjsUtc);
+
+const basicStore = useBasicStore();
+const { rules } = storeToRefs(basicStore);
 
 const isOpen = Vue.ref(false);
 
 const id = Vue.ref('');
-const data = Vue.ref({} as any);
+const item = Vue.ref({} as any);
+const previousItem = Vue.ref({} as any);
 
 const positionAt = Vue.ref('');
 const alignTo = Vue.ref('');
@@ -121,6 +231,9 @@ const arrowLeft = Vue.ref('auto');
 const arrowRight = Vue.ref('auto');
 const arrowTop = Vue.ref('auto');
 const arrowBottom = Vue.ref('auto');
+const arrowTranslateX = Vue.ref('-50%');
+
+const textAlign = Vue.ref('left');
 
 emitter.on('showInsight', (incoming: any) => {
   isOpen.value = true;
@@ -128,9 +241,9 @@ emitter.on('showInsight', (incoming: any) => {
   positionAt.value = incoming.positionAt;
   alignTo.value = incoming.alignTo;
   width.value = incoming.width ? `${incoming.width}px` : '24rem';
-  data.value = incoming.data;
-
-  console.log('incoming', positionAt.value, alignTo.value);
+  item.value = incoming.item;
+  previousItem.value = incoming.previousItem;
+  arrowTranslateX.value = '-50%';
 
   if (positionAt.value === 'top') {
     top.value = `${incoming.y - 5}px`;
@@ -146,18 +259,22 @@ emitter.on('showInsight', (incoming: any) => {
     translateY.value = '0';
   }
 
-  if (alignTo.value === 'left') {
-    left.value = `${incoming.x}px`;
-    arrowLeft.value = `${incoming.arrowX}px`;
-    arrowRight.value = 'auto';
-    translateX.value = '0';
-  }
+  left.value = `${incoming.x}px`;
+  arrowLeft.value = `${incoming.arrowX}px`;
+  arrowRight.value = 'auto';
+  textAlign.value = 'left';
   
-  if (alignTo.value === 'right') {
-    left.value = `${incoming.x}px`;
-    arrowLeft.value = `${incoming.arrowX}px`;
-    arrowRight.value = 'auto';
+  if (alignTo.value === 'left') {
+    translateX.value = '0';
+  } else if (alignTo.value === 'right') {
     translateX.value = '-100%';
+    arrowRight.value = arrowLeft.value;
+    arrowLeft.value = 'auto';
+    arrowTranslateX.value = '50%';
+  } else if (alignTo.value === 'center') {
+    arrowLeft.value = '50%'
+    translateX.value = '-50%';
+    textAlign.value = 'center';
   }
 });
 

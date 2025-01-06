@@ -36,8 +36,8 @@ test("test single day recovery", () => {
 
   const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
 
-  marker.setAnnualTransactions(rules.transactionsAnnually);
-  marker.setAnnualMicropayments(rules.micropaymentsAnnually);
+  marker.setAnnualTransactions(rules.maxTransactionsAnnually);
+  marker.setAnnualMicropayments(rules.maxMicropaymentsAnnually);
 
   marker.runRecovery(rules, [], vault);
   marker.manageSeigniorageProfits(rules, reserve);
@@ -68,8 +68,8 @@ test("almost recovered while collapsing 1", () => {
 
   const marker = new Marker(currentDate, durationInHours, startingCirculation, startingCapital);
 
-  marker.setAnnualTransactions(rules.transactionsAnnually);
-  marker.setAnnualMicropayments(rules.micropaymentsAnnually);
+  marker.setAnnualTransactions(rules.maxTransactionsAnnually);
+  marker.setAnnualMicropayments(rules.maxMicropaymentsAnnually);
 
   marker.runRecovery(rules, [], vault);
   marker.manageSeigniorageProfits(rules, reserve);
@@ -100,8 +100,8 @@ test("almost recovered while collapsing 2", () => {
 
   const marker = new Marker(currentDate, durationInHours, startingCirculation, startingCapital);
 
-  marker.setAnnualTransactions(rules.transactionsAnnually);
-  marker.setAnnualMicropayments(rules.micropaymentsAnnually);
+  marker.setAnnualTransactions(rules.maxTransactionsAnnually);
+  marker.setAnnualMicropayments(rules.maxMicropaymentsAnnually);
   
   marker.removeCapital(86542271.37411, 'TerraCollapse');
 
@@ -137,8 +137,8 @@ test("started recovering while collapsing", () => {
 
   const marker = new Marker(currentDate, durationInHours, startingCirculation, startingCapital);
 
-  marker.setAnnualTransactions(rules.transactionsAnnually);
-  marker.setAnnualMicropayments(rules.micropaymentsAnnually);
+  marker.setAnnualTransactions(rules.maxTransactionsAnnually);
+  marker.setAnnualMicropayments(rules.maxMicropaymentsAnnually);
   
   marker.removeCapital(529640323.298, 'TerraCollapse');
 
@@ -162,8 +162,8 @@ test("recovery using vaultExportAdvanced1", () => {
   for (let i = 0; i < 4; i++) {
     const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
 
-    marker.setAnnualTransactions(rules.transactionsAnnually);
-    marker.setAnnualMicropayments(rules.micropaymentsAnnually);
+    marker.setAnnualTransactions(rules.maxTransactionsAnnually);
+    marker.setAnnualMicropayments(rules.maxMicropaymentsAnnually);
   
     marker.setReserve(reserve);
     marker.runRecovery(rules, [], vault);
@@ -196,8 +196,8 @@ test("recovery using vaultExportAdvanced2", () => {
   for (let i = 0; i < 2; i++) {
     const marker = new Marker(currentDate, durationInHours, currentCirculation, currentCapital);
 
-    marker.setAnnualTransactions(rules.transactionsAnnually);
-    marker.setAnnualMicropayments(rules.micropaymentsAnnually);
+    marker.setAnnualTransactions(rules.maxTransactionsAnnually);
+    marker.setAnnualMicropayments(rules.maxMicropaymentsAnnually);
   
     marker.setReserve(reserve);
     marker.runRecovery(rules, [], vault);

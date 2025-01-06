@@ -78,17 +78,10 @@ export function formatPrice(price: number, decimals?: number) {
 }
 
 export function addCommasToFloat(str: string, decimals = 2) {
-  const arr = str.split('.');
-  const int = arr[0];
-  const dec = arr.length > 1 ? `.${arr[1]}` : '';
-  return (
-    // tslint:disable-next-line:prefer-template
-    int.replace(/(\d)(?=(\d{3})+$)/g, '$1,') +
-    '.' +
-    parseFloat(dec)
-      .toFixed(decimals)
-      .split('.')[1]
-  );
+  const arr = parseFloat(str).toFixed(decimals).split('.');
+  const int = arr[0].replace(/(\d)(?=(\d{3})+$)/g, '$1,');
+  const dec = arr[1].padEnd(decimals, '0');
+  return `${int}.${dec}`;
 }
 
 export function currency(num: string | number, decimals = 2) {
@@ -108,9 +101,11 @@ export function formatAsBillions(value: number | string) {
 
   if (value <= 0) return '0'
   if (value >= TEN_MILLION) {
-    return `${addCommas(value / ONE_BILLION, 2)}B`;
+    const valueB = addCommas(value / ONE_BILLION, 2).replace(/\.?0+$/, '');
+    return `${valueB}B`;
   } else if (value >= ONE_MILLION) {
-    return `${(value / ONE_BILLION).toFixed(3)}B`;
+    const valueB = (value / ONE_BILLION).toFixed(3).replace(/\.?0+$/, '');
+    return `${valueB}B`;
   } else {
     return value.toExponential(2);
   }

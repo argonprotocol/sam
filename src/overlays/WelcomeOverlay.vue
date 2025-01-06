@@ -29,9 +29,9 @@
                     real-world capabilities.
                   </p>
                   
-                  <div v-if="showVideo" class="grow relative !py-5">
+                  <div v-if="showVideo" class="grow relative !py-5 w-full">
                     <div class="LoadingPulse absolute inset-0 flex items-center justify-center text-slate-500/60 text-3xl uppercase">Loading Video...</div>
-                    <wistia-player media-id="1k1jdinjxd"></wistia-player>
+                    <wistia-player media-id="o32bfzhcor"></wistia-player>
                   </div>
                   <div v-else VideoLink @click="expandVideo" class="border border-dashed border-gray-400 rounded-md py-4 !my-5 text-center group cursor-pointer">
                     <div class="text-lg text-fuchsia-600 group-hover:text-fuchsia-500 cursor-pointer pl-1 font-bold">

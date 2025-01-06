@@ -53,6 +53,7 @@
       <div class="grow relative">
         <ChartBg />
         <Chart ref="chartRef" :xAxisPhases="xAxisPhases" :endingYear="chartEndingYear" />
+        <div class="absolute top-1/2 translate-y-[222%] left-14 bg-[#E6EAF3] px-1 z-[10] pointer-events-none text-[#63298E] text-sm font-light">1.00</div>
         <div v-if="needsRerun" class="absolute top-0 left-0 w-full h-full z-10">
           <div class="absolute top-0 left-0 w-full h-full bg-[#E6EAF3] opacity-80">
             <ChartBg />
@@ -74,7 +75,7 @@
 
           <div ref="configSectionRef" class="absolute top-full translate-y-7 right-0 z-[10]">            
           
-            <section class="divide-y divide-slate-400/40 border-b border-slate-400/40 whitespace-nowrap uppercase text-sm text-right">
+            <section class="divide-y divide-slate-400/40 border-b border-slate-400/40 whitespace-nowrap uppercase text-sm text-right cursor-default">
               <h3 class="pt-1 pb-2 font-semibold text-base">CONFIGURE BASIC PROPERTIES</h3>
               <div class="relative py-2 pl-3">
                 LIQUID LOCKING OF BITCOIN IS AT
@@ -106,7 +107,7 @@
 
     </div>
     <PlayerOverlay />
-    <EditingOverlay />
+    <ConfigurationOverlay />
   </div>
 </template>
 
@@ -117,7 +118,7 @@ import utc from 'dayjs/plugin/utc';
 import { IFilterName, useBasicStore } from '../store';
 import Chart from '../components/Chart.vue';
 import PlayerOverlay from '../overlays/PlayerOverlay.vue';
-import EditingOverlay from '../overlays/EditingOverlay.vue';
+import ConfigurationOverlay from '../overlays/ConfigurationOverlay.vue';
 import { storeToRefs } from 'pinia';
 import emitter from '../emitters/basic';
 import ChartBg from '../components/ChartBg.vue';

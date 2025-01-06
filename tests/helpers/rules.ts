@@ -7,8 +7,8 @@ const rules: IRules = {
   dollarInflation: 3.5,
 
   enableTaxation: true,
-  transactionsAnnually: 1_000_000_000,
-  micropaymentsAnnually: 150_000_000,
+  maxTransactionsAnnually: 1_000_000_000,
+  maxMicropaymentsAnnually: 150_000_000,
 
   enableBitcoinVaulting: true,
   btcVaultCapacityPct: 100,

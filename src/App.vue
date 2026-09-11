@@ -1,8 +1,9 @@
 <template>
-    <div v-if="isTooNarrow" class="flex flex-col h-screen w-screen select-none justify-center px-20">
-    <div class="text-center text-slate-400/80 text-xl pt-4 font-bold" style="text-shadow: 1px 1px 0 rgba(255,255,255,0.8);">
-      This tool is best viewed on a larger screen. Please use a desktop or laptop.
+    <div v-if="isTooNarrow" class="flex flex-col h-screen w-screen select-none justify-center px-4">
+    <div class="text-center text-slate-400/80 text-xl pt-4 font-bold mb-10 px-16" style="text-shadow: 1px 1px 0 rgba(255,255,255,0.8);">
+      This tool must be viewed on a larger screen. Please use a desktop or laptop.
     </div>
+    <wistia-player media-id="o32bfzhcor"></wistia-player>
   </div>
   <div v-else class="flex flex-row min-h-screen w-screen">
     <div class="flex flex-col h-screen grow min-w-[60rem] min-h-[55rem]">
@@ -46,6 +47,22 @@ const { completedWelcome, tourStep, isLoading, isRunning, isReady } = storeToRef
 
 const windowWidth = Vue.ref(window.innerWidth);
 
+let scriptIsInjected = false;
+
+const isTooNarrow = Vue.computed(() => {
+  const isLessThan1224 = windowWidth.value < 1224;
+
+  if (isLessThan1224 && !scriptIsInjected) {
+    const script = document.createElement('script');
+    script.src = 'https://fast.wistia.com/player.js';
+    script.async = true;
+    document.head.appendChild(script);
+    scriptIsInjected = true;
+  }
+
+  return isLessThan1224;
+});
+
 Vue.onMounted(() => {
   if (!completedWelcome.value && tourStep.value === 0) {
     emitter.emit('openWelcomeOverlay');
@@ -55,8 +72,6 @@ Vue.onMounted(() => {
     windowWidth.value = window.innerWidth;
   });
 });
-
-const isTooNarrow = Vue.computed(() => windowWidth.value < 1224);
 
 basicStore.load();
 </script>
